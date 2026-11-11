@@ -345,6 +345,181 @@ class DynamicManagerPlanTest(unittest.TestCase):
         self.assertEqual("tool", retry_message["role"])
         self.assertIn("retryable", retry_message["content"])
 
+    def test_malformed_tool_call_arguments_self_heal_via_role_tool(self):
+        self._prepare_first_item()
+        client = FakeToolCallingClient(
+            [
+                {
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "call-bad-json",
+                            "type": "function",
+                            "function": {
+                                "name": "knowledge_retrieve_evidence",
+                                "arguments": "not-json",
+                            },
+                        }
+                    ],
+                },
+                {
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "call-knowledge-ok",
+                            "type": "function",
+                            "function": {
+                                "name": "knowledge_retrieve_evidence",
+                                "arguments": json.dumps(
+                                    {
+                                        "query": "HARA scenario",
+                                        "tags": ["hara_scenario"],
+                                    }
+                                ),
+                            },
+                        }
+                    ],
+                },
+                {
+                    "content": json.dumps(
+                        example("malfunction_analysis.json"), ensure_ascii=False
+                    )
+                },
+            ]
+        )
+        record = AgentRuntime(self.engine).run_item(
+            "dynamic",
+            "W02",
+            include_draft_knowledge=True,
+            client=client,
+        )
+        retry = client.requests[1]["messages"][-1]
+        # 坏 JSON 参数不再中断：以 role=tool 挂回原 tool_call_id 让模型自愈
+        self.assertEqual("tool", retry["role"])
+        self.assertEqual("call-bad-json", retry["tool_call_id"])
+        self.assertIn("retryable", retry["content"])
+        self.assertEqual(
+            "knowledge_retrieve_evidence",
+            record["provenance"]["tool_calls"][-1]["tool"],
+        )
+
+    def test_tool_call_without_id_falls_back_to_user_feedback(self):
+        self._prepare_first_item()
+        client = FakeToolCallingClient(
+            [
+                {
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "type": "function",
+                            "function": {
+                                "name": "knowledge_retrieve_evidence",
+                                "arguments": json.dumps(
+                                    {"query": "HARA scenario"}
+                                ),
+                            },
+                        }
+                    ],
+                },
+                {
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "call-knowledge-ok",
+                            "type": "function",
+                            "function": {
+                                "name": "knowledge_retrieve_evidence",
+                                "arguments": json.dumps(
+                                    {
+                                        "query": "HARA scenario",
+                                        "tags": ["hara_scenario"],
+                                    }
+                                ),
+                            },
+                        }
+                    ],
+                },
+                {
+                    "content": json.dumps(
+                        example("malfunction_analysis.json"), ensure_ascii=False
+                    )
+                },
+            ]
+        )
+        record = AgentRuntime(self.engine).run_item(
+            "dynamic",
+            "W02",
+            include_draft_knowledge=True,
+            client=client,
+        )
+        retry = client.requests[1]["messages"][-1]
+        # 缺 tool_call_id 无法挂 role=tool，回退 role=user 纠错
+        self.assertEqual("user", retry["role"])
+        self.assertIn("tool call was invalid", retry["content"])
+        self.assertTrue(record["provenance"]["evidence_refs"])
+
+    def test_agent_proposal_contract_failure_retries_then_succeeds(self):
+        import fs_agent_v2.model_contracts as contracts
+        from pydantic import BaseModel, ConfigDict
+
+        class StrictGate(BaseModel):
+            model_config = ConfigDict(extra="allow")
+            synthetic_gate: str
+
+        self._prepare_first_item()
+        valid = json.loads(
+            json.dumps(example("malfunction_analysis.json"), ensure_ascii=False)
+        )
+        client = FakeToolCallingClient(
+            [
+                {
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "id": "call-knowledge-ok",
+                            "type": "function",
+                            "function": {
+                                "name": "knowledge_retrieve_evidence",
+                                "arguments": json.dumps(
+                                    {
+                                        "query": "HARA scenario",
+                                        "tags": ["hara_scenario"],
+                                    }
+                                ),
+                            },
+                        }
+                    ],
+                },
+                {"content": json.dumps(valid, ensure_ascii=False)},
+                {
+                    "content": json.dumps(
+                        {**valid, "synthetic_gate": "ok"}, ensure_ascii=False
+                    )
+                },
+            ]
+        )
+        original = dict(contracts.AGENT_PROPOSAL_MODELS)
+        contracts.AGENT_PROPOSAL_MODELS["malfunction_analysis_engineer"] = StrictGate
+        try:
+            record = AgentRuntime(self.engine).run_item(
+                "dynamic",
+                "W02",
+                include_draft_knowledge=True,
+                client=client,
+            )
+        finally:
+            contracts.AGENT_PROPOSAL_MODELS.clear()
+            contracts.AGENT_PROPOSAL_MODELS.update(original)
+        retry = client.requests[2]["messages"][-1]
+        # 结构化输出 schema 校验失败：回传纠错消息并自愈后成功提交
+        self.assertEqual("user", retry["role"])
+        self.assertIn("proposal was rejected", retry["content"])
+        self.assertIn("synthetic_gate", retry["content"])
+        self.assertIn(
+            "proposal_contract",
+            [entry["tool"] for entry in record["provenance"]["tool_calls"]],
+        )
+
     def test_model_cannot_skip_required_knowledge_retrieval(self):
         self._prepare_first_item()
         client = FakeToolCallingClient(

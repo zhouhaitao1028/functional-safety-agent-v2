@@ -18,6 +18,7 @@ tests/_tmp/
 !config/api.env.example
 config/local/
 .idea/
+.trae/
 data/
 # Web console build output is committed so `python run.py web` works after clone
 !src/fs_agent_v2/web/static/dist/

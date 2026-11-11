@@ -8,6 +8,7 @@ import zipfile
 
 from ..agents import AgentContext, AgentDefinition
 from ..errors import ContractError
+from ..interface_tools.openai_adapter import INTERFACE_TOOL_NAMES, interface_tool_definition
 
 if TYPE_CHECKING:
     from .dynamic_engine import DynamicWorkEngine
@@ -53,6 +54,11 @@ class AgentToolbox:
     def definitions(self) -> list[dict]:
         definitions = []
         for canonical in self.agent.tools:
+            if canonical.startswith("interface."):
+                # 接口确定性工具：定义经 MCP→OpenAI 适配器暴露给模型，
+                # 执行仍在确定性后端（dynamic_engine），不经工具循环。
+                definitions.append(interface_tool_definition(canonical))
+                continue
             if canonical not in WIRE_NAMES:
                 raise ContractError(
                     f"agent {self.agent.id} requests an unavailable runtime tool: {canonical}"
@@ -75,6 +81,11 @@ class AgentToolbox:
 
     def execute(self, wire_name: str, arguments: dict) -> ToolExecution:
         canonical = CANONICAL_NAMES.get(wire_name)
+        if canonical is None and wire_name in set(INTERFACE_TOOL_NAMES.values()):
+            raise ContractError(
+                "interface tools execute in the deterministic backend; "
+                f"models cannot invoke them directly: {wire_name}"
+            )
         if canonical is None or canonical not in self.allowed:
             raise ContractError(f"model attempted unavailable tool: {wire_name}")
         if canonical == "knowledge.retrieve_evidence":

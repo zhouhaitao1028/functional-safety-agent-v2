@@ -114,6 +114,47 @@ class SoftwareInterfaceIntentRuntimeTest(unittest.TestCase):
             client.calls[1]["messages"][-1]["content"].lower(),
         )
 
+    def test_tool_call_contract_failure_retries_via_role_tool(self):
+        client = FakeIntentClient(
+            [
+                tool_response(
+                    interaction="execute",
+                    operation="invent_operation",
+                    compare_to_existing=False,
+                    version_ordering="input_order",
+                    summary="参数不合法的调用",
+                    confidence=0.9,
+                    clarification_needed=False,
+                    clarification_question="",
+                    assistant_reply="",
+                ),
+                tool_response(
+                    interaction="execute",
+                    operation="generate_overview",
+                    compare_to_existing=False,
+                    version_ordering="input_order",
+                    summary="从接口包生成并校验总览表",
+                    confidence=0.92,
+                    clarification_needed=False,
+                    clarification_question="",
+                    assistant_reply="我会生成并校验接口总览。",
+                ),
+            ]
+        )
+        intent = SoftwareInterfaceIntentRuntime(self.engine).interpret(
+            "生成接口总览表",
+            primary_input_supplied=True,
+            secondary_input_supplied=False,
+            client=client,
+        )
+        self.assertEqual("generate_overview", intent["operation"])
+        retry = client.calls[1]["messages"][-1]
+        # 协议要求：上一轮是 tool_call 时，纠错反馈必须以 role=tool 挂在原 tool_call_id 上
+        self.assertEqual("tool", retry["role"])
+        self.assertEqual("intent-1", retry["tool_call_id"])
+        self.assertIn("retryable", retry["content"])
+        self.assertIn("unsupported interface operation", retry["content"])
+
     def test_unclear_intent_must_return_one_clarification_question(self):
         client = FakeIntentClient(
             [

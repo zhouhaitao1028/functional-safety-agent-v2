@@ -6,6 +6,7 @@ import hashlib
 import json
 
 from ..agents import AgentContext, AgentRegistry
+from ..model_contracts import validate_interface_task_result
 from ..deterministic import AsilCalculator, FaultTreeCalculator, TraceabilityValidator
 from ..errors import ContractError
 from ..interface_tools import InterfaceAnalysisService, InterfaceDeliveryService
@@ -690,50 +691,9 @@ class DynamicWorkEngine:
 
     @staticmethod
     def _validate_software_interface_contract(value: dict) -> None:
-        operation = value.get("operation")
-        result = value.get("result", value)
-        summary = result.get("summary", {})
-        if operation == "generate_overview":
-            validation = result.get("validation", {})
-            if not validation.get("passed"):
-                raise ContractError(
-                    "generated software interface overview failed independent validation"
-                )
-            if validation.get("summary", {}).get("data_rows", -1) != value.get(
-                "summary", {}
-            ).get("data_rows", -2):
-                raise ContractError(
-                    "software interface generation row counts do not reconcile"
-                )
-            DynamicWorkEngine._validate_interface_artifacts(value)
-            return
-        if operation == "compare_overviews":
-            compare_summary = result.get("summary", {})
-            for field in ("new_rows", "old_rows", "total_diffs", "new_only", "old_only"):
-                if not isinstance(compare_summary.get(field), int) or compare_summary[field] < 0:
-                    raise ContractError(
-                        f"software interface comparison has invalid {field}"
-                    )
-            DynamicWorkEngine._validate_interface_artifacts(value)
-            return
-        if operation == "analyze_package":
-            summary = result.get("summary", {})
-        if summary.get("parsed_module_files", 0) + summary.get(
-            "skipped_module_files", 0
-        ) != summary.get("module_files", -1):
-            raise ContractError(
-                "software interface report module counts do not reconcile"
-            )
-        if summary.get("valid_cross_application_links", 0) + summary.get(
-            "missing_cross_application_links", 0
-        ) != summary.get("cross_application_links", -1):
-            raise ContractError(
-                "software interface report link counts do not reconcile"
-            )
-        if summary.get("findings", 0) < len(result.get("findings", [])):
-            raise ContractError(
-                "software interface report finding count is smaller than its evidence list"
-            )
+        # 结构部分（summary/result 计数恒等关系）收编为 pydantic 契约 contracts.py；
+        # 产物存在性等确定性领域校验保留在此，且在结构校验之后执行。
+        validate_interface_task_result(value)
         DynamicWorkEngine._validate_interface_artifacts(value)
 
     @staticmethod

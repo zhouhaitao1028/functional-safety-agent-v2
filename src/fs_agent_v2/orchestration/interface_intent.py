@@ -4,6 +4,15 @@ from datetime import datetime, timezone
 from typing import Callable
 import json
 
+from pydantic import ValidationError
+
+from ..model_contracts import (
+    INTENT_INTERACTIONS,
+    INTENT_OPERATIONS,
+    INTENT_VERSION_ORDERINGS,
+    InterfaceIntentModel,
+    format_validation_error,
+)
 from ..errors import ContractError, ModelError
 from ..model import ChatModelClient, OpenAICompatibleChatClient
 from .agent_runtime import AgentRuntime
@@ -14,14 +23,9 @@ class SoftwareInterfaceIntentRuntime:
     """Continue an interface conversation and emit bounded execution parameters."""
 
     TOOL_NAME = "submit_software_interface_intent"
-    OPERATIONS = {
-        "generate_overview",
-        "compare_overviews",
-        "analyze_package",
-        "unclear",
-    }
-    INTERACTIONS = {"execute", "answer", "clarify"}
-    VERSION_ORDERINGS = {"input_order", "modification_time"}
+    OPERATIONS = INTENT_OPERATIONS
+    INTERACTIONS = INTENT_INTERACTIONS
+    VERSION_ORDERINGS = INTENT_VERSION_ORDERINGS
 
     def __init__(
         self,
@@ -88,18 +92,55 @@ class SoftwareInterfaceIntentRuntime:
                 }
             except (ContractError, ModelError) as exc:
                 last_error = str(exc)
+                self._append_retry_feedback(messages, message, last_error)
+        raise ModelError(
+            "interface intent model exceeded its bounded retries: " + last_error
+        )
+
+    @staticmethod
+    def _append_retry_feedback(
+        messages: list[dict], message: dict, error: str
+    ) -> None:
+        """把契约校验失败回传给模型：有 tool_call 用 role=tool，纯文本回退 role=user。
+
+        协议要求 role=tool 消息必须挂在真实 tool_call_id 上，因此两条路径都保留。
+        """
+        instruction = (
+            "Call submit_software_interface_intent once with corrected arguments."
+        )
+        tool_calls = message.get("tool_calls")
+        if isinstance(tool_calls, list) and tool_calls:
+            messages.append(
+                {
+                    "role": "assistant",
+                    "content": message.get("content"),
+                    "tool_calls": tool_calls,
+                }
+            )
+            first = tool_calls[0]
+            tool_id = first.get("id") if isinstance(first, dict) else None
+            if isinstance(tool_id, str) and tool_id:
                 messages.append(
                     {
-                        "role": "user",
-                        "content": (
-                            "The intent was rejected: "
-                            + last_error
-                            + ". Call submit_software_interface_intent once with corrected arguments."
+                        "role": "tool",
+                        "tool_call_id": tool_id,
+                        "content": json.dumps(
+                            {
+                                "error": error,
+                                "retryable": True,
+                                "instruction": instruction,
+                            },
+                            ensure_ascii=False,
+                            separators=(",", ":"),
                         ),
                     }
                 )
-        raise ModelError(
-            "interface intent model exceeded its bounded retries: " + last_error
+                return
+        messages.append(
+            {
+                "role": "user",
+                "content": "The intent was rejected: " + error + ". " + instruction,
+            }
         )
 
     @staticmethod
@@ -178,85 +219,14 @@ class SoftwareInterfaceIntentRuntime:
 
     @classmethod
     def _validate(cls, value: dict) -> dict:
-        allowed = {
-            "interaction",
-            "operation",
-            "compare_to_existing",
-            "version_ordering",
-            "summary",
-            "confidence",
-            "clarification_needed",
-            "clarification_question",
-            "assistant_reply",
-        }
-        extras = sorted(set(value) - allowed)
-        if extras:
-            raise ContractError(f"interface intent has unsupported fields: {extras}")
-        interaction = value.get("interaction")
-        if interaction not in cls.INTERACTIONS:
-            raise ContractError(f"unsupported interface interaction: {interaction}")
-        operation = value.get("operation")
-        if operation not in cls.OPERATIONS:
-            raise ContractError(f"unsupported interface operation: {operation}")
-        compare_to_existing = value.get("compare_to_existing")
-        if not isinstance(compare_to_existing, bool):
-            raise ContractError("compare_to_existing must be boolean")
-        if operation != "generate_overview" and compare_to_existing:
+        """结构化输出 schema 强校验：字段与跨字段规则收编在 InterfaceIntentModel。"""
+        try:
+            return InterfaceIntentModel.model_validate(value).model_dump()
+        except ValidationError as exc:
             raise ContractError(
-                "compare_to_existing is only valid for generate_overview"
-            )
-        version_ordering = value.get("version_ordering")
-        if version_ordering not in cls.VERSION_ORDERINGS:
-            raise ContractError(f"unsupported version ordering: {version_ordering}")
-        if version_ordering == "modification_time" and operation != "compare_overviews":
-            raise ContractError(
-                "modification_time ordering is only valid for compare_overviews"
-            )
-        summary = value.get("summary")
-        if not isinstance(summary, str) or not summary.strip():
-            raise ContractError("interface intent summary must be non-empty")
-        confidence = value.get("confidence")
-        if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
-            raise ContractError("interface intent confidence must be numeric")
-        confidence = float(confidence)
-        if not 0 <= confidence <= 1:
-            raise ContractError("interface intent confidence must be between 0 and 1")
-        clarification_needed = value.get("clarification_needed")
-        if not isinstance(clarification_needed, bool):
-            raise ContractError("clarification_needed must be boolean")
-        question = value.get("clarification_question", "")
-        if not isinstance(question, str):
-            raise ContractError("clarification_question must be a string")
-        reply = value.get("assistant_reply", "")
-        if not isinstance(reply, str):
-            raise ContractError("assistant_reply must be a string")
-        if interaction == "execute":
-            if operation == "unclear" or clarification_needed:
-                raise ContractError(
-                    "execute interaction requires one concrete operation without clarification"
-                )
-        elif interaction == "answer":
-            if operation != "unclear" or clarification_needed:
-                raise ContractError(
-                    "answer interaction must not schedule an operation or clarification"
-                )
-            if not reply.strip():
-                raise ContractError("answer interaction requires assistant_reply")
-        elif not clarification_needed:
-            raise ContractError("clarify interaction must request clarification")
-        if clarification_needed and not question.strip():
-            raise ContractError("clarification request must include one question")
-        return {
-            "interaction": interaction,
-            "operation": operation,
-            "compare_to_existing": compare_to_existing,
-            "version_ordering": version_ordering,
-            "summary": summary.strip()[:500],
-            "confidence": confidence,
-            "clarification_needed": clarification_needed,
-            "clarification_question": question.strip()[:500],
-            "assistant_reply": reply.strip()[:1000],
-        }
+                "interface intent contract rejected: "
+                + format_validation_error(exc)
+            ) from exc
 
     @classmethod
     def _tool_definition(cls) -> dict:

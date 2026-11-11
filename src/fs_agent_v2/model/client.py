@@ -12,7 +12,9 @@ class ChatModelClient(Protocol):
     provider: str
     model: str
 
-    def complete(self, messages: list[dict], tools: list[dict]) -> dict: ...
+    def complete(
+        self, messages: list[dict], tools: list[dict], *, json_mode: bool = False
+    ) -> dict: ...
 
 
 class OpenAICompatibleChatClient:
@@ -28,7 +30,9 @@ class OpenAICompatibleChatClient:
         self.temperature = config.temperature
         self.timeout_seconds = config.timeout_seconds
 
-    def complete(self, messages: list[dict], tools: list[dict]) -> dict:
+    def complete(
+        self, messages: list[dict], tools: list[dict], *, json_mode: bool = False
+    ) -> dict:
         endpoint = (
             self.base_url
             if self.base_url.endswith("/chat/completions")
@@ -42,6 +46,12 @@ class OpenAICompatibleChatClient:
         if tools:
             payload["tools"] = tools
             payload["tool_choice"] = "auto"
+        elif json_mode:
+            # 结构化输出留口：仅在无工具循环时启用 json_object。
+            # DeepSeek 的 json_object 会强制 content 为合法 JSON，与 tool_calls
+            # 共存行为不可靠，且不支持 json_schema，因此结构可靠性由
+            # contracts.py 的 pydantic 校验 + 有界自愈循环兜底，这里默认不发该字段。
+            payload["response_format"] = {"type": "json_object"}
         if "api.deepseek.com" in self.base_url:
             # DeepSeek's documented non-thinking tool-call flow does not require
             # reasoning_content to be replayed across tool turns.

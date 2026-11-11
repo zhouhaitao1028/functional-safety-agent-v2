@@ -5,6 +5,7 @@ from typing import Callable
 import json
 import re
 
+from ..model_contracts import validate_agent_proposal
 from ..errors import ContractError, ModelError
 from ..model import ChatModelClient, OpenAICompatibleChatClient
 from ..storage import WorkClaim
@@ -87,7 +88,23 @@ class AgentRuntime:
                 assistant_message["tool_calls"] = tool_calls
                 messages.append(assistant_message)
                 for tool_call in tool_calls:
-                    tool_id, wire_name, arguments = self._parse_tool_call(tool_call)
+                    try:
+                        tool_id, wire_name, arguments = self._parse_tool_call(
+                            tool_call
+                        )
+                    except ModelError as exc:
+                        tool_log.append(
+                            {
+                                "round": round_number,
+                                "tool": "(unparsed)",
+                                "arguments": {},
+                                "error": str(exc),
+                            }
+                        )
+                        self._append_invalid_tool_call_feedback(
+                            messages, tool_call, str(exc)
+                        )
+                        continue
                     try:
                         execution = toolbox.execute(wire_name, arguments)
                     except ContractError as exc:
@@ -143,6 +160,31 @@ class AgentRuntime:
 
             content = message.get("content")
             proposal = self._parse_proposal(content)
+            try:
+                validate_agent_proposal(agent.id, proposal)
+            except ContractError as exc:
+                # 结构化输出 schema 校验失败：回传纠错消息让模型在有界轮数内自愈
+                tool_log.append(
+                    {
+                        "round": round_number,
+                        "tool": "proposal_contract",
+                        "arguments": {},
+                        "error": str(exc),
+                    }
+                )
+                messages.append(assistant_message)
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": (
+                            "Your proposal was rejected: "
+                            + str(exc)
+                            + " Return one corrected JSON object matching the "
+                            "output schema, without Markdown fences or commentary."
+                        ),
+                    }
+                )
+                continue
             if (
                 agent.knowledge_scopes
                 and "knowledge.retrieve_evidence" in agent.tools
@@ -217,6 +259,42 @@ class AgentRuntime:
                 "content": json.dumps(user_payload, ensure_ascii=False, indent=2),
             },
         ]
+
+    @staticmethod
+    def _append_invalid_tool_call_feedback(
+        messages: list[dict], tool_call: object, error: str
+    ) -> None:
+        """tool_call 结构/参数解析失败时回传自愈反馈。
+
+        有 tool_call_id 用 role=tool（协议要求），缺失时回退 role=user。
+        """
+        instruction = (
+            "Re-issue a valid tool call with a string id and JSON-object arguments."
+        )
+        tool_id = tool_call.get("id") if isinstance(tool_call, dict) else None
+        if isinstance(tool_id, str) and tool_id:
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_id,
+                    "content": json.dumps(
+                        {
+                            "error": error,
+                            "retryable": True,
+                            "instruction": instruction,
+                        },
+                        ensure_ascii=False,
+                        separators=(",", ":"),
+                    ),
+                }
+            )
+            return
+        messages.append(
+            {
+                "role": "user",
+                "content": "The tool call was invalid: " + error + ". " + instruction,
+            }
+        )
 
     @staticmethod
     def _parse_tool_call(tool_call: object) -> tuple[str, str, dict]:

@@ -5,6 +5,7 @@ from typing import Callable
 import json
 
 from ..agents import AgentContext
+from ..model_contracts import validate_workplan_proposal
 from ..errors import ContractError, ModelError
 from ..model import ChatModelClient, OpenAICompatibleChatClient
 from .agent_runtime import AgentRuntime
@@ -89,7 +90,23 @@ class ManagerRuntime:
                 assistant_message["tool_calls"] = tool_calls
                 messages.append(assistant_message)
                 for tool_call in tool_calls:
-                    tool_id, wire_name, arguments = AgentRuntime._parse_tool_call(tool_call)
+                    try:
+                        tool_id, wire_name, arguments = (
+                            AgentRuntime._parse_tool_call(tool_call)
+                        )
+                    except ModelError as exc:
+                        tool_log.append(
+                            {
+                                "round": round_number,
+                                "tool": "(unparsed)",
+                                "arguments": {},
+                                "error": str(exc),
+                            }
+                        )
+                        AgentRuntime._append_invalid_tool_call_feedback(
+                            messages, tool_call, str(exc)
+                        )
+                        continue
                     try:
                         execution = toolbox.execute(wire_name, arguments)
                     except ContractError as exc:
@@ -161,6 +178,7 @@ class ManagerRuntime:
                     + ", ".join(sorted(missing_inspections))
                 )
             try:
+                validate_workplan_proposal(proposal)
                 self._require_exact_inputs(proposal, normalized_inputs)
                 unavailable = sorted(
                     {
