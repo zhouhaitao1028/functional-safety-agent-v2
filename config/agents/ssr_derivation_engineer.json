@@ -1,0 +1,25 @@
+{
+  "id": "ssr_derivation_engineer",
+  "title": "软件安全需求 Engineer",
+  "role": "engineer",
+  "kind": "llm",
+  "business": "依据已批准 TSR、公司软件需求分析指导手册和模板导出可验证 SSR，并保持上级需求追溯；无法确定的字段必须写 TBD。",
+  "consumes": ["tsr_requirements"],
+  "produces": ["ssr_specification"],
+  "output_schema": "ssr_specification.schema.json",
+  "knowledge_scopes": ["company_process", "company_template"],
+  "skills": ["functional-safety-knowledge"],
+  "tools": ["knowledge.retrieve_evidence", "knowledge.graph", "artifact.read"],
+  "deterministic_checks": ["unique_ids"],
+  "approval_required": true,
+  "api": {
+    "default_provider": "openai_compatible",
+    "default_model": "",
+    "provider_env": "FS_AGENT_SSR_PROVIDER",
+    "base_url_env": "FS_AGENT_SSR_BASE_URL",
+    "api_key_env": "FS_AGENT_SSR_API_KEY",
+    "model_env": "FS_AGENT_SSR_MODEL",
+    "temperature": 0.0,
+    "timeout_seconds": 300
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "id": "software_interface_engineer",
+  "title": "软件接口追溯 Engineer",
+  "role": "engineer",
+  "kind": "hybrid",
+  "business": "先使用受约束的大模型调用把用户自然语言转换为 parameters.operation，不允许模型读取或处理文件；随后执行确定性软件接口任务：generate_overview 从 software_interface_package 生成正式总览；compare_overviews 比较两个 interface_overview；analyze_package 审查接口字典、跨应用层收发链路和 Unit2ComponentConfig。默认生成引擎为 fast，所有结果均进入人工确认门。",
+  "consumes": [],
+  "optional_consumes": [
+    "software_interface_package",
+    "interface_overview",
+    "software_interface_task_result"
+  ],
+  "produces": ["software_interface_task_result"],
+  "output_schema": "software_interface_task_result.schema.json",
+  "knowledge_scopes": [],
+  "skills": ["fusa-software-interface-traceability"],
+  "tools": [
+    "interface.generate_overview",
+    "interface.compare_overviews",
+    "interface.analyze_package",
+    "interface.compare_config",
+    "interface.inspect_overview"
+  ],
+  "deterministic_checks": ["software_interface_contract"],
+  "approval_required": true,
+  "api": {
+    "default_provider": "openai_compatible",
+    "default_model": "",
+    "provider_env": "FS_AGENT_SOFTWARE_INTERFACE_PROVIDER",
+    "base_url_env": "FS_AGENT_SOFTWARE_INTERFACE_BASE_URL",
+    "api_key_env": "FS_AGENT_SOFTWARE_INTERFACE_API_KEY",
+    "model_env": "FS_AGENT_SOFTWARE_INTERFACE_MODEL",
+    "temperature": 0.0,
+    "timeout_seconds": 120
+  }
+}

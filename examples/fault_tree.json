@@ -1,0 +1,34 @@
+{
+  "top_event_id": "TE-AEB-001",
+  "safety_goal_ids": ["SG-AEB-001"],
+  "nodes": [
+    {
+      "id": "TE-AEB-001",
+      "type": "OR",
+      "description": "AEB产生危险的非预期制动请求",
+      "children": ["BE-AEB-001", "G-AEB-001"]
+    },
+    {
+      "id": "BE-AEB-001",
+      "type": "BASIC",
+      "description": "目标风险判断错误"
+    },
+    {
+      "id": "G-AEB-001",
+      "type": "AND",
+      "description": "错误制动请求未被安全机制抑制",
+      "children": ["BE-AEB-002", "BE-AEB-003"]
+    },
+    {
+      "id": "BE-AEB-002",
+      "type": "BASIC",
+      "description": "制动请求计算错误"
+    },
+    {
+      "id": "BE-AEB-003",
+      "type": "BASIC",
+      "description": "独立监控机制失效"
+    }
+  ]
+}
+

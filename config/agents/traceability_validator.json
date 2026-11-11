@@ -1,0 +1,16 @@
+{
+  "id": "traceability_validator",
+  "title": "追溯完整性 Validator",
+  "role": "validator",
+  "kind": "deterministic",
+  "business": "根据 ssr_specification 中的 parent_tsr_ids 构建并校验 TSR→SSR 双向追溯；不用于软件接口 Excel，软件接口字段与 AA/AB 校验由 software_interface_engineer 内部完成。",
+  "consumes": ["*"],
+  "produces": ["traceability"],
+  "output_schema": "traceability.schema.json",
+  "knowledge_scopes": [],
+  "skills": [],
+  "tools": ["artifact.list", "artifact.read"],
+  "deterministic_checks": ["traceability"],
+  "approval_required": true,
+  "api": null
+}

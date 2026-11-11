@@ -1,0 +1,25 @@
+{
+  "id": "manager_agent",
+  "title": "任务规划与路由 Manager",
+  "role": "manager",
+  "kind": "llm",
+  "business": "理解用户目标，先检查输入物并读取 Agent 能力注册表，再选择最小必要的业务 Agent，生成带依赖关系、结构化输入输出和人工确认点的工作计划；不直接编写业务交付物，也不执行输入物。",
+  "consumes": ["task_request", "source_material"],
+  "produces": ["workplan"],
+  "output_schema": "workplan.schema.json",
+  "knowledge_scopes": ["agent_capability", "company_process"],
+  "skills": ["functional-safety-knowledge"],
+  "tools": ["agent_registry.list", "source.inspect", "knowledge.retrieve_evidence", "knowledge.graph", "artifact.list"],
+  "deterministic_checks": ["workplan_contract"],
+  "approval_required": true,
+  "api": {
+    "default_provider": "openai_compatible",
+    "default_model": "",
+    "provider_env": "FS_AGENT_MANAGER_PROVIDER",
+    "base_url_env": "FS_AGENT_MANAGER_BASE_URL",
+    "api_key_env": "FS_AGENT_MANAGER_API_KEY",
+    "model_env": "FS_AGENT_MANAGER_MODEL",
+    "temperature": 0.1,
+    "timeout_seconds": 180
+  }
+}

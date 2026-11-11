@@ -1,0 +1,25 @@
+{
+  "id": "function_model_engineer",
+  "title": "功能建模 Engineer",
+  "role": "engineer",
+  "kind": "llm",
+  "business": "从需求、架构和场景资料中提取功能、边界、状态、接口与运行场景。",
+  "consumes": ["source_material"],
+  "produces": ["function_model"],
+  "output_schema": "function_model.schema.json",
+  "knowledge_scopes": ["vehicle_domain", "function_model", "company_template"],
+  "skills": ["functional-safety-knowledge"],
+  "tools": ["knowledge.retrieve_evidence", "artifact.read"],
+  "deterministic_checks": ["unique_ids"],
+  "approval_required": true,
+  "api": {
+    "default_provider": "openai_compatible",
+    "default_model": "",
+    "provider_env": "FS_AGENT_FUNCTION_MODEL_PROVIDER",
+    "base_url_env": "FS_AGENT_FUNCTION_MODEL_BASE_URL",
+    "api_key_env": "FS_AGENT_FUNCTION_MODEL_API_KEY",
+    "model_env": "FS_AGENT_FUNCTION_MODEL_MODEL",
+    "temperature": 0.1,
+    "timeout_seconds": 180
+  }
+}

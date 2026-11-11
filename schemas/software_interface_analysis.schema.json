@@ -1,0 +1,110 @@
+{
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "mode",
+    "source",
+    "source_fingerprint",
+    "inputs",
+    "summary",
+    "configuration_diff",
+    "findings",
+    "findings_truncated",
+    "artifacts",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "minLength": 1},
+    "mode": {
+      "type": "string",
+      "enum": ["legacy_overview_audit", "native_basic_match"]
+    },
+    "source": {"type": "string", "minLength": 1},
+    "source_fingerprint": {"type": "string", "minLength": 64},
+    "inputs": {"type": "object"},
+    "summary": {
+      "type": "object",
+      "required": [
+        "module_files",
+        "parsed_module_files",
+        "skipped_module_files",
+        "mapped_module_files",
+        "unmapped_module_files",
+        "extracted_interface_records",
+        "pie_matrix_rows",
+        "pie_matrix_mapping_keys",
+        "matrix_matched_interface_records",
+        "matrix_unmatched_interface_records",
+        "overview_records",
+        "cross_application_links",
+        "valid_cross_application_links",
+        "missing_cross_application_links",
+        "duplicate_mapping_keys",
+        "findings"
+      ],
+      "properties": {
+        "module_files": {"type": "integer"},
+        "parsed_module_files": {"type": "integer"},
+        "skipped_module_files": {"type": "integer"},
+        "mapped_module_files": {"type": "integer"},
+        "unmapped_module_files": {"type": "integer"},
+        "extracted_interface_records": {"type": "integer"},
+        "pie_matrix_rows": {"type": "integer"},
+        "pie_matrix_mapping_keys": {"type": "integer"},
+        "matrix_matched_interface_records": {"type": "integer"},
+        "matrix_unmatched_interface_records": {"type": "integer"},
+        "overview_records": {"type": "integer"},
+        "cross_application_links": {"type": "integer"},
+        "valid_cross_application_links": {"type": "integer"},
+        "missing_cross_application_links": {"type": "integer"},
+        "duplicate_mapping_keys": {"type": "integer"},
+        "findings": {"type": "integer"}
+      }
+    },
+    "configuration_diff": {"type": "object"},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "category",
+          "severity",
+          "message",
+          "evidence",
+          "requires_human_confirmation"
+        ],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "category": {"type": "string", "minLength": 1},
+          "severity": {
+            "type": "string",
+            "enum": ["info", "warning", "error"]
+          },
+          "message": {"type": "string", "minLength": 1},
+          "evidence": {"type": "object"},
+          "requires_human_confirmation": {"type": "boolean"}
+        }
+      }
+    },
+    "findings_truncated": {"type": "boolean"},
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "path", "sha256"],
+        "properties": {
+          "type": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "minLength": 64}
+        }
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "safety_goals": [
+    {
+      "id": "SG-AEB-001",
+      "hara_assessment_ids": ["HARA-AEB-001"],
+      "statement": "应防止AEB在不存在碰撞风险时产生导致危险减速度的非预期制动请求。",
+      "asil": "D",
+      "safe_state": "抑制非预期制动请求并进入受控降级状态。",
+      "rationale": "由演示HARA事件HARA-AEB-001导出，需人工评审。"
+    }
+  ]
+}
+

@@ -1,0 +1,28 @@
+{
+  "metadata": {
+    "id": "hara-scenario-seed",
+    "version": "0.1.0",
+    "status": "draft",
+    "source": "Project seed; no production scenario judgement is encoded",
+    "tags": ["hara_scenario", "failure_mode"]
+  },
+  "content": {
+    "scenario_dimensions": [
+      "road_type",
+      "vehicle_speed",
+      "traffic_density",
+      "weather",
+      "illumination",
+      "vulnerable_road_users",
+      "driver_controllability"
+    ],
+    "malfunction_categories": [
+      "loss_of_function",
+      "unintended_function",
+      "incorrect_function",
+      "timing_error",
+      "degraded_function"
+    ]
+  }
+}
+

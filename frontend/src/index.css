@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 25% 97%;
+    --foreground: 224 40% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 224 40% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 40% 12%;
+    --primary: 222 66% 49%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 93%;
+    --secondary-foreground: 224 40% 12%;
+    --muted: 220 20% 93%;
+    --muted-foreground: 224 15% 45%;
+    --accent: 217 60% 92%;
+    --accent-foreground: 222 66% 40%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 60% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 44%;
+    --warning-foreground: 0 0% 100%;
+    --border: 220 18% 88%;
+    --input: 220 18% 86%;
+    --ring: 222 66% 49%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 224 40% 8%;
+    --foreground: 220 20% 92%;
+    --card: 224 35% 11%;
+    --card-foreground: 220 20% 92%;
+    --popover: 224 35% 11%;
+    --popover-foreground: 220 20% 92%;
+    --primary: 222 70% 58%;
+    --primary-foreground: 224 40% 8%;
+    --secondary: 224 28% 16%;
+    --secondary-foreground: 220 20% 92%;
+    --muted: 224 28% 16%;
+    --muted-foreground: 220 12% 60%;
+    --accent: 222 45% 20%;
+    --accent-foreground: 218 60% 78%;
+    --destructive: 0 68% 56%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 152 55% 42%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 90% 52%;
+    --warning-foreground: 224 40% 8%;
+    --border: 224 25% 20%;
+    --input: 224 25% 22%;
+    --ring: 222 70% 58%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer utilities {
+  .shimmer-text {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted-foreground)) 0%,
+      hsl(var(--foreground)) 50%,
+      hsl(var(--muted-foreground)) 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer 2.2s linear infinite;
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+}

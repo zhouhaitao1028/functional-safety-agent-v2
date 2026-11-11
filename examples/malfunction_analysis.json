@@ -1,0 +1,20 @@
+{
+  "malfunctions": [
+    {
+      "id": "MF-AEB-001",
+      "function_id": "FUNC-AEB-001",
+      "category": "unintended_function",
+      "description": "不存在碰撞风险时产生非预期紧急制动请求。",
+      "consequences": ["自车突然减速", "后车可能发生追尾"],
+      "hazardous_events": [
+        {
+          "id": "HE-AEB-001",
+          "scenario_id": "SCN-URBAN-001",
+          "description": "城市道路跟车时发生非预期紧急制动，后车驾驶员无法及时响应。",
+          "evidence_refs": ["DEMO-ASSUMPTION-1"]
+        }
+      ]
+    }
+  ]
+}
+

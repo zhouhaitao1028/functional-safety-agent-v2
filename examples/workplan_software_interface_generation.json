@@ -1,0 +1,33 @@
+{
+  "id": "software-interface-generation",
+  "version": "1.0.0",
+  "goal": "使用快速确定性引擎生成软件组件接口收发总览表",
+  "inputs": [
+    {
+      "id": "IN-INTERFACE-PACKAGE",
+      "type": "software_interface_package",
+      "location": "../外部接口生成与对比工具.zip"
+    }
+  ],
+  "work_items": [
+    {
+      "id": "W01",
+      "title": "生成并校验软件接口总览表",
+      "agent_id": "software_interface_engineer",
+      "depends_on": [],
+      "input_refs": ["IN-INTERFACE-PACKAGE"],
+      "parameters": {
+        "operation": "generate_overview",
+        "engine": "fast",
+        "compare_to_existing": false,
+        "max_evidence": 1000
+      },
+      "output": {
+        "id": "OUT-SOFTWARE-INTERFACE-TASK",
+        "type": "software_interface_task_result",
+        "artifact": "01_software_interface_generation.json"
+      },
+      "approval_required": true
+    }
+  ]
+}

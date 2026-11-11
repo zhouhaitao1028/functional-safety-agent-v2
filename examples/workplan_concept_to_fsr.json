@@ -1,0 +1,53 @@
+{
+  "id": "aeb-concept-analysis",
+  "version": "1.0.0",
+  "goal": "根据 AEB 原始资料形成经人工确认的功能模型、HARA、安全目标、FTA、FSR 和追溯结果。",
+  "inputs": [
+    {"id": "INPUT-AEB-SOURCE", "type": "source_material", "location": "项目 inputs 目录"}
+  ],
+  "work_items": [
+    {
+      "id": "W01", "title": "提取 AEB 功能模型", "agent_id": "function_model_engineer",
+      "depends_on": [], "input_refs": ["INPUT-AEB-SOURCE"],
+      "output": {"id": "OUT-FUNCTION", "type": "function_model", "artifact": "01_function_model.json"},
+      "approval_required": true
+    },
+    {
+      "id": "W02", "title": "分析功能失效与危害事件", "agent_id": "malfunction_analysis_engineer",
+      "depends_on": ["W01"], "input_refs": ["OUT-FUNCTION"],
+      "output": {"id": "OUT-MALFUNCTION", "type": "malfunction_analysis", "artifact": "02_malfunction_analysis.json"},
+      "approval_required": true
+    },
+    {
+      "id": "W03", "title": "提出 S/E/C 并由程序计算 ASIL", "agent_id": "hara_engineer",
+      "depends_on": ["W02"], "input_refs": ["OUT-MALFUNCTION"],
+      "output": {"id": "OUT-HARA", "type": "hara_assessment", "artifact": "03_hara_assessment.json"},
+      "approval_required": true
+    },
+    {
+      "id": "W04", "title": "导出安全目标", "agent_id": "safety_goal_engineer",
+      "depends_on": ["W03"], "input_refs": ["OUT-HARA"],
+      "output": {"id": "OUT-SG", "type": "safety_goals", "artifact": "04_safety_goals.json"},
+      "approval_required": true
+    },
+    {
+      "id": "W05", "title": "构建故障树并计算最小割集", "agent_id": "fault_tree_engineer",
+      "depends_on": ["W04"], "input_refs": ["OUT-SG"],
+      "output": {"id": "OUT-FTA", "type": "fault_tree", "artifact": "05_fault_tree.json"},
+      "approval_required": true
+    },
+    {
+      "id": "W06", "title": "导出功能安全需求", "agent_id": "fsr_engineer",
+      "depends_on": ["W04", "W05"], "input_refs": ["OUT-SG", "OUT-FTA"],
+      "output": {"id": "OUT-FSR", "type": "fsr", "artifact": "06_functional_safety_requirements.json"},
+      "approval_required": true
+    },
+    {
+      "id": "W07", "title": "验证端到端追溯完整性", "agent_id": "traceability_validator",
+      "depends_on": ["W06"],
+      "input_refs": ["OUT-FUNCTION", "OUT-MALFUNCTION", "OUT-HARA", "OUT-SG", "OUT-FTA", "OUT-FSR"],
+      "output": {"id": "OUT-TRACE", "type": "traceability", "artifact": "07_traceability.json"},
+      "approval_required": true
+    }
+  ]
+}

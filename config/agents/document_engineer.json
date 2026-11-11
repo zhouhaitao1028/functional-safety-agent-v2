@@ -1,0 +1,25 @@
+{
+  "id": "document_engineer",
+  "title": "交付文档 Engineer",
+  "role": "engineer",
+  "kind": "action_agent",
+  "business": "把已批准的结构化业务数据填入指定公司模板，生成正式交付件。",
+  "consumes": ["*"],
+  "produces": ["document_package"],
+  "output_schema": null,
+  "knowledge_scopes": ["company_template", "company_process"],
+  "skills": ["functional-safety-knowledge"],
+  "tools": ["knowledge.retrieve_evidence", "knowledge.graph", "artifact.read", "document.render"],
+  "deterministic_checks": ["template_fields", "traceability"],
+  "approval_required": true,
+  "api": {
+    "default_provider": "openai_compatible",
+    "default_model": "",
+    "provider_env": "FS_AGENT_DOCUMENT_PROVIDER",
+    "base_url_env": "FS_AGENT_DOCUMENT_BASE_URL",
+    "api_key_env": "FS_AGENT_DOCUMENT_API_KEY",
+    "model_env": "FS_AGENT_DOCUMENT_MODEL",
+    "temperature": 0.0,
+    "timeout_seconds": 300
+  }
+}

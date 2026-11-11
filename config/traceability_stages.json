@@ -1,0 +1,47 @@
+{
+  "line": "traceability",
+  "task": "软件接口总览表生成与对比",
+  "principle": "所有专业结论由确定性工具产出，模型只负责任务理解与结果解释；每个输出携带输入/输出 SHA-256 与证据锚点，关键节点人工确认。",
+  "stages": [
+    {
+      "id": "pkg-analysis",
+      "name": "接口包解析",
+      "order": 1,
+      "description": "解析标准接口包（模块 XLSM 词典、PIE Matrix、Unit2ComponentConfig、映射工具宏），产出包结构清单，为总览表生成提供输入基线。",
+      "tools": ["analyze_package"],
+      "skill_refs": ["操作路由", "任务边界"]
+    },
+    {
+      "id": "overview-generation",
+      "name": "总览表生成",
+      "order": 2,
+      "description": "纯 Python 快速引擎（自 VBA 宏逆向复刻）生成软件组件接口收发总览表；legacy 引擎仅作兼容性 oracle/fallback。",
+      "tools": ["generate_overview"],
+      "skill_refs": ["生成不变量", "输入要求"]
+    },
+    {
+      "id": "independent-validation",
+      "name": "独立校验",
+      "order": 3,
+      "description": "生成后独立复核工作簿：AA/AB 跨应用链路按排除规则与有效组判定逐条核验，校验失败阻断自动交付，禁止模型改值修复。",
+      "tools": ["generate_overview"],
+      "skill_refs": ["生成不变量"]
+    },
+    {
+      "id": "version-comparison",
+      "name": "新旧版本对比",
+      "order": 4,
+      "description": "按业务键列（非行号）对比新旧总览表，分离新增/删除/变更/未变四类结果，疑似重命名仅作 review 候选。",
+      "tools": ["compare_overviews", "compare_configs", "inspect_overview"],
+      "skill_refs": ["对比不变量"]
+    },
+    {
+      "id": "human-gate",
+      "name": "人工确认与审计",
+      "order": 5,
+      "description": "交付文件、每处检测到的变更、重复业务键、疑似重命名、未消解映射、缺失跨应用链路、删除的配置行都必须过人工确认门，确认写入审计。",
+      "tools": [],
+      "skill_refs": ["人工确认门", "review-contract"]
+    }
+  ]
+}

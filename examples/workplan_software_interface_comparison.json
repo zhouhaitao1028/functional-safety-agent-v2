@@ -1,0 +1,36 @@
+{
+  "id": "software-interface-comparison",
+  "version": "1.0.0",
+  "goal": "比较新旧软件接口总览并输出可追溯差异",
+  "inputs": [
+    {
+      "id": "IN-NEW-OVERVIEW",
+      "type": "interface_overview",
+      "location": "data/new.xlsx"
+    },
+    {
+      "id": "IN-OLD-OVERVIEW",
+      "type": "interface_overview",
+      "location": "data/old.xlsx"
+    }
+  ],
+  "work_items": [
+    {
+      "id": "W01",
+      "title": "比较新旧软件接口总览",
+      "agent_id": "software_interface_engineer",
+      "depends_on": [],
+      "input_refs": ["IN-NEW-OVERVIEW", "IN-OLD-OVERVIEW"],
+      "parameters": {
+        "operation": "compare_overviews",
+        "max_evidence": 1000
+      },
+      "output": {
+        "id": "OUT-SOFTWARE-INTERFACE-TASK",
+        "type": "software_interface_task_result",
+        "artifact": "01_software_interface_comparison.json"
+      },
+      "approval_required": true
+    }
+  ]
+}

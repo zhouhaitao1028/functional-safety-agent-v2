@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Fault Tree",
+  "type": "object",
+  "required": ["top_event_id", "safety_goal_ids", "nodes"],
+  "properties": {
+    "top_event_id": {"type": "string", "minLength": 1},
+    "safety_goal_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "description"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "type": {"type": "string", "enum": ["BASIC", "AND", "OR"]},
+          "description": {"type": "string", "minLength": 1},
+          "children": {"type": "array", "items": {"type": "string"}},
+          "evidence_refs": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "minimal_cut_sets": {
+      "type": "array",
+      "items": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+    }
+  }
+}
+

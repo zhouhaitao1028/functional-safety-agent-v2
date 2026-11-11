@@ -1,0 +1,11 @@
+{
+  "links": [
+    {"source_id": "FUNC-AEB-001", "target_id": "MF-AEB-001", "type": "function_to_malfunction"},
+    {"source_id": "MF-AEB-001", "target_id": "HE-AEB-001", "type": "malfunction_to_event"},
+    {"source_id": "HE-AEB-001", "target_id": "HARA-AEB-001", "type": "event_to_hara"},
+    {"source_id": "HARA-AEB-001", "target_id": "SG-AEB-001", "type": "hara_to_safety_goal"},
+    {"source_id": "SG-AEB-001", "target_id": "FSR-AEB-001", "type": "safety_goal_to_fsr"}
+  ],
+  "required_target_ids": ["MF-AEB-001", "HE-AEB-001", "HARA-AEB-001", "SG-AEB-001", "FSR-AEB-001"]
+}
+

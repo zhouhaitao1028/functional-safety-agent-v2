@@ -1,0 +1,25 @@
+{
+  "id": "malfunction_analysis_engineer",
+  "title": "失效分析 Engineer",
+  "role": "engineer",
+  "kind": "llm",
+  "business": "识别功能失效、后果和危害事件候选，并保存来源与理由。",
+  "consumes": ["function_model"],
+  "produces": ["malfunction_analysis"],
+  "output_schema": "malfunction_analysis.schema.json",
+  "knowledge_scopes": ["failure_mode", "hara_scenario", "company_template"],
+  "skills": ["functional-safety-knowledge"],
+  "tools": ["knowledge.retrieve_evidence", "artifact.read"],
+  "deterministic_checks": ["unique_ids"],
+  "approval_required": true,
+  "api": {
+    "default_provider": "openai_compatible",
+    "default_model": "",
+    "provider_env": "FS_AGENT_MALFUNCTION_PROVIDER",
+    "base_url_env": "FS_AGENT_MALFUNCTION_BASE_URL",
+    "api_key_env": "FS_AGENT_MALFUNCTION_API_KEY",
+    "model_env": "FS_AGENT_MALFUNCTION_MODEL",
+    "temperature": 0.1,
+    "timeout_seconds": 180
+  }
+}

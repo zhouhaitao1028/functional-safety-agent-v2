@@ -1,0 +1,22 @@
+{
+  "metadata": {
+    "id": "vehicle-domain-seed",
+    "version": "0.1.0",
+    "status": "draft",
+    "source": "Project seed derived from the proposed architecture; replace with reviewed organizational knowledge",
+    "tags": ["vehicle_domain", "function_model", "safety_goal_pattern", "fsr_pattern"]
+  },
+  "content": {
+    "domains": ["chassis", "body", "powertrain", "cockpit", "adas", "platform"],
+    "required_function_context": [
+      "operational_scenario",
+      "vehicle_state",
+      "driver_interaction",
+      "external_actors",
+      "system_boundary",
+      "interfaces"
+    ],
+    "note": "Draft taxonomy only. Domain experts must provide approved concepts and sources."
+  }
+}
+

@@ -1,0 +1,261 @@
+{
+  "stages": [
+    {
+      "id": "function-definition",
+      "name": "功能定义",
+      "order": 1,
+      "description": "从需求、架构和场景资料中提取功能、边界、状态、接口与运行场景，形成后续 HARA 分析的功能输入。",
+      "agent_id": "function_model_engineer",
+      "skill_id": "stage-function-definition",
+      "produces": "function_model",
+      "upstream": [],
+      "downstream": ["hara-analysis"],
+      "guides": [
+        {
+          "id": "gd-function-definition",
+          "title": "功能定义编写指南",
+          "kind": "guide",
+          "file": "knowledge_assets/function-definition/功能定义编写指南.md"
+        },
+        {
+          "id": "tp-function-model",
+          "title": "功能清单模板",
+          "kind": "template",
+          "file": "knowledge_assets/function-definition/功能清单模板.md"
+        }
+      ],
+      "rag_documents": [
+        "legacy-company-functional-safety-assets",
+        "vehicle-domain-seed",
+        "legacy-8f90fa173c431d18b511",
+        "legacy-1153cdb74adbce8a0c3b",
+        "legacy-72e42cea296a060c8dc0",
+        "legacy-619b2e91eaf0189725aa",
+        "legacy-dabaa1c0eba1193b5193",
+        "legacy-cf1adbe0f8ee110c2a4d",
+        "legacy-372143919145c98fff7a",
+        "legacy-3018ab5cfa0d0f838016",
+        "legacy-88426f0d99600e20c847",
+        "legacy-93cebf7530ddb732ee5c",
+        "legacy-5e0d0e99b85f7316f6c0",
+        "legacy-5b801444b911be96b383",
+        "legacy-408247d2ae188cb14209",
+        "legacy-ff1e474988b390da5952"
+      ]
+    },
+    {
+      "id": "hara-analysis",
+      "name": "HARA 分析",
+      "order": 2,
+      "description": "对功能定义中的运行场景做危害识别与风险评估，给出 S/E/C 候选与依据；ASIL 等级由确定性规则计算。",
+      "agent_id": "hara_engineer",
+      "skill_id": "stage-hara-analysis",
+      "produces": "hara_assessment",
+      "upstream": ["function-definition"],
+      "downstream": ["safety-goal"],
+      "guides": [
+        {
+          "id": "gd-hara-analysis",
+          "title": "HARA 分析指南",
+          "kind": "guide",
+          "file": "knowledge_assets/hara-analysis/HARA分析指南.md"
+        },
+        {
+          "id": "tp-hara-worksheet",
+          "title": "HARA 评估表模板",
+          "kind": "template",
+          "file": "knowledge_assets/hara-analysis/HARA评估表模板.md"
+        }
+      ],
+      "rag_documents": [
+        "hara-scenario-seed",
+        "asil-matrix-initial"
+      ]
+    },
+    {
+      "id": "safety-goal",
+      "name": "安全目标",
+      "order": 3,
+      "description": "从已确认的 HARA 结果导出安全目标、安全状态和容错时间要求候选。",
+      "agent_id": "safety_goal_engineer",
+      "skill_id": "stage-safety-goal",
+      "produces": "safety_goals",
+      "upstream": ["hara-analysis"],
+      "downstream": ["tsr-authoring"],
+      "guides": [
+        {
+          "id": "gd-safety-goal",
+          "title": "安全目标编写指南",
+          "kind": "guide",
+          "file": "knowledge_assets/safety-goal/安全目标编写指南.md"
+        }
+      ],
+      "rag_documents": [
+        "asil-matrix-initial",
+        "hara-scenario-seed",
+        "legacy-dabaa1c0eba1193b5193"
+      ]
+    },
+    {
+      "id": "tsr-authoring",
+      "name": "技术安全需求（TSR）",
+      "order": 4,
+      "description": "把安全目标细化为技术安全需求，校验结构、ASIL、来源和 ID 唯一性。",
+      "agent_id": "tsr_ingestion_validator",
+      "skill_id": "stage-tsr-authoring",
+      "produces": "tsr_specification",
+      "upstream": ["safety-goal"],
+      "downstream": ["fsr-authoring"],
+      "guides": [
+        {
+          "id": "gd-tsr-authoring",
+          "title": "TSR 编写指南",
+          "kind": "guide",
+          "file": "knowledge_assets/tsr-authoring/TSR编写指南.md"
+        },
+        {
+          "id": "tp-tsr-list",
+          "title": "TSR 需求清单模板",
+          "kind": "template",
+          "file": "knowledge_assets/tsr-authoring/TSR需求清单模板.md"
+        }
+      ],
+      "rag_documents": [
+        "legacy-dabaa1c0eba1193b5193"
+      ]
+    },
+    {
+      "id": "fsr-authoring",
+      "name": "软件安全需求（FSR）",
+      "order": 5,
+      "description": "依据已批准 TSR 和软件需求分析指导手册导出可验证 FSR，保持上级需求追溯；无法确定的字段必须写 TBD。",
+      "agent_id": "fsr_engineer",
+      "skill_id": "stage-fsr-authoring",
+      "produces": "fsr_specification",
+      "upstream": ["tsr-authoring"],
+      "downstream": ["software-architecture"],
+      "guides": [
+        {
+          "id": "gd-fsr-authoring",
+          "title": "FSR 导出指南",
+          "kind": "guide",
+          "file": "knowledge_assets/fsr-authoring/FSR导出指南.md"
+        },
+        {
+          "id": "tp-fsr-list",
+          "title": "FSR 清单模板",
+          "kind": "template",
+          "file": "knowledge_assets/fsr-authoring/FSR清单模板.md"
+        }
+      ],
+      "rag_documents": [
+        "legacy-25f936873a10c8a926c7",
+        "legacy-c68c3b6a485834d2201c",
+        "legacy-3803cbd7f8d1bf53b2bb",
+        "legacy-731784a347a441f21bf9",
+        "legacy-ae59c3ecc71635a9fceb",
+        "legacy-dabaa1c0eba1193b5193"
+      ]
+    },
+    {
+      "id": "software-architecture",
+      "name": "软件架构设计",
+      "order": 6,
+      "description": "将 FSR 分配到软件架构元素，保持 TSR→FSR→架构元素的双向追溯。",
+      "agent_id": "ssr_derivation_engineer",
+      "skill_id": "stage-software-architecture",
+      "produces": "architecture_allocation",
+      "upstream": ["fsr-authoring"],
+      "downstream": ["verification-testing"],
+      "guides": [
+        {
+          "id": "gd-software-architecture",
+          "title": "软件架构设计安全指南",
+          "kind": "guide",
+          "file": "knowledge_assets/software-architecture/软件架构设计安全指南.md"
+        }
+      ],
+      "rag_documents": [
+        "legacy-165b1ef524f3e4ca55e0",
+        "legacy-ee8f66737b5b2619387b",
+        "legacy-02c4193d6887519b42fb",
+        "legacy-e9841d3c120088f5b19c",
+        "legacy-7c1d1fadd5af14500a90",
+        "legacy-046d4f6f936c3fe29e67",
+        "legacy-6b0d728dc65ada1cb6c4",
+        "legacy-64909208002b9f5ecb76",
+        "legacy-203dad0b604747f1fd15",
+        "legacy-1edd07bc54a739572e7e",
+        "legacy-9b976aea5a02e93a7d9f",
+        "legacy-8b63f0c0afc0bffa2a7f",
+        "legacy-e52ba6a3ed6cd2c06d79",
+        "legacy-48afa0b8ba6e2a3f2f46",
+        "legacy-e8542114d6aab4e148fc",
+        "legacy-afc2b55bcbd25d101822",
+        "legacy-ae59c3ecc71635a9fceb",
+        "legacy-39e01dd770f824abfe83",
+        "legacy-024d26c2bae7552de13b",
+        "legacy-0e6f18e9e4f3ef1043d0",
+        "legacy-dee8f06acf222673b040",
+        "legacy-cc96bcb043462152856c",
+        "legacy-8f76a25d886b9f84501c",
+        "legacy-2603c36270b8065a31b9",
+        "legacy-f5940256a159f6bab66b",
+        "legacy-d56918732582551bd1c1",
+        "legacy-998187899aa48e1ae9c9",
+        "legacy-12c965b546ab67b529a5",
+        "legacy-026c41464c0f79faa842",
+        "legacy-a39a3a309f5152985f36"
+      ]
+    },
+    {
+      "id": "verification-testing",
+      "name": "测试（组件/集成/系统）",
+      "order": 7,
+      "description": "按组件、集成、系统三层设计测试用例，校验需求覆盖率与追溯完整性。",
+      "agent_id": "traceability_validator",
+      "skill_id": "stage-verification-testing",
+      "produces": "test_specification",
+      "upstream": ["software-architecture"],
+      "downstream": [],
+      "guides": [
+        {
+          "id": "gd-verification-testing",
+          "title": "测试用例设计指南",
+          "kind": "guide",
+          "file": "knowledge_assets/verification-testing/测试用例设计指南.md"
+        },
+        {
+          "id": "tp-test-case",
+          "title": "测试用例模板",
+          "kind": "template",
+          "file": "knowledge_assets/verification-testing/测试用例模板.md"
+        }
+      ],
+      "rag_documents": [
+        "legacy-445327060687dfee38f0",
+        "legacy-b7bb6c27afdc73395ed2",
+        "legacy-20ca3417f2b3e4a93065",
+        "legacy-65ea6d26537f89098830",
+        "legacy-ac3cf84318dfbbe185cb",
+        "legacy-dc458972ba36aca2d3db",
+        "legacy-e43eae21b0034f7cd6e6",
+        "legacy-cea731664668a877dde8",
+        "legacy-24741425a0062f317ad9",
+        "legacy-7f605021e3adb688337d",
+        "legacy-330caec2d58c7e40ed55",
+        "legacy-fa9588007901e1362143",
+        "legacy-bf60c257c3cc0f837461",
+        "legacy-f7253b310069ba28973e",
+        "legacy-8daae35f7df07737017a",
+        "legacy-ea39f386fae922b31198",
+        "legacy-a56f8295afa807edfd14",
+        "legacy-ecbcdbf831e6c5b94cd9",
+        "legacy-e5307777afe815692997",
+        "legacy-35043de818cbc8a634da",
+        "legacy-c92b37f4528261e458c1",
+        "legacy-8813b0a76c781dd9de72"
+      ]
+    }
+  ]
+}

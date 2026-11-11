@@ -1,0 +1,52 @@
+{
+  "requirements": [
+    {
+      "id": "TSR-001",
+      "statement": "当车速信号超过 120 km/h 且持续 200 ms 时，软件应在 50 ms 内进入限速降级模式",
+      "asil": "D",
+      "allocation": "软件",
+      "source_refs": ["SG1", "FSR01", "TSR_测试用例.xlsx:TSR!row-2"],
+      "notes": "时序要求"
+    },
+    {
+      "id": "TSR-002",
+      "statement": "当驱动扭矩请求与驾驶员意图不一致超过 2 s 时，软件应关闭扭矩输出并点亮警告指示",
+      "asil": "D",
+      "allocation": "软件",
+      "source_refs": ["SG1", "FSR02", "TSR_测试用例.xlsx:TSR!row-3"],
+      "notes": "失效反应"
+    },
+    {
+      "id": "TSR-003",
+      "statement": "软件应每 10 ms 检查一次制动踏板信号的有效性（范围与冗余一致性）",
+      "asil": "B",
+      "allocation": "软件",
+      "source_refs": ["SG2", "FSR03", "TSR_测试用例.xlsx:TSR!row-4"],
+      "notes": "运行模式：正常"
+    },
+    {
+      "id": "TSR-004",
+      "statement": "检测到传感器信号无效时，软件应使用降级值并在 100 ms 内上报故障码",
+      "asil": "B",
+      "allocation": "软件",
+      "source_refs": ["SG2", "FSR03", "TSR_测试用例.xlsx:TSR!row-5"],
+      "notes": "降级概念"
+    },
+    {
+      "id": "TSR-005",
+      "statement": "软件应通过 SPI 每 5 ms 与安全监控芯片交换安全状态字，连续 3 次丢帧应触发安全状态",
+      "asil": "C",
+      "allocation": "软件",
+      "source_refs": ["SG2", "FSR05", "TSR_测试用例.xlsx:TSR!row-6"],
+      "notes": "软硬件接口"
+    },
+    {
+      "id": "TSR-006",
+      "statement": "在整车下电流程中，软件应在 300 ms 内完成安全相关数据的非易失存储",
+      "asil": "A",
+      "allocation": "软件",
+      "source_refs": ["SG3", "FSR07", "TSR_测试用例.xlsx:TSR!row-7"],
+      "notes": "运行模式：下电"
+    }
+  ]
+}

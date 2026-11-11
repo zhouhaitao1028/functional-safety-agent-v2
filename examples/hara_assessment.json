@@ -1,0 +1,17 @@
+{
+  "assessments": [
+    {
+      "id": "HARA-AEB-001",
+      "hazardous_event_id": "HE-AEB-001",
+      "severity": "S3",
+      "exposure": "E4",
+      "controllability": "C3",
+      "evidence": [
+        "演示数据：该S/E/C仅用于验证程序流程，不代表正式安全判断。"
+      ],
+      "safe_state": "停止非预期制动请求并将系统转换为受控降级状态。",
+      "assumptions": ["正式项目必须由功能安全负责人重新确认S/E/C。"]
+    }
+  ]
+}
+

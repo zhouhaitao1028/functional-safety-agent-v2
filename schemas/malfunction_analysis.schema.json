@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Malfunction Analysis",
+  "type": "object",
+  "required": ["malfunctions"],
+  "properties": {
+    "malfunctions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "function_id", "category", "description", "hazardous_events"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "function_id": {"type": "string", "minLength": 1},
+          "category": {
+            "type": "string",
+            "enum": ["loss_of_function", "unintended_function", "incorrect_function", "timing_error", "degraded_function"]
+          },
+          "description": {"type": "string", "minLength": 1},
+          "consequences": {"type": "array", "items": {"type": "string"}},
+          "hazardous_events": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["id", "scenario_id", "description"],
+              "properties": {
+                "id": {"type": "string", "minLength": 1},
+                "scenario_id": {"type": "string", "minLength": 1},
+                "description": {"type": "string", "minLength": 1},
+                "evidence_refs": {"type": "array", "items": {"type": "string"}}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

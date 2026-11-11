@@ -1,0 +1,25 @@
+{
+  "id": "hara_engineer",
+  "title": "HARA Engineer",
+  "role": "engineer",
+  "kind": "llm",
+  "business": "给出 S/E/C 候选等级、依据与证据；ASIL 由确定性规则计算。",
+  "consumes": ["malfunction_analysis"],
+  "produces": ["hara_assessment"],
+  "output_schema": "hara_assessment.schema.json",
+  "knowledge_scopes": ["hara_scenario", "asil_rule", "company_template"],
+  "skills": ["functional-safety-knowledge"],
+  "tools": ["knowledge.retrieve_evidence", "knowledge.graph", "artifact.read"],
+  "deterministic_checks": ["unique_ids", "asil_matrix"],
+  "approval_required": true,
+  "api": {
+    "default_provider": "openai_compatible",
+    "default_model": "",
+    "provider_env": "FS_AGENT_HARA_PROVIDER",
+    "base_url_env": "FS_AGENT_HARA_BASE_URL",
+    "api_key_env": "FS_AGENT_HARA_API_KEY",
+    "model_env": "FS_AGENT_HARA_MODEL",
+    "temperature": 0.1,
+    "timeout_seconds": 240
+  }
+}

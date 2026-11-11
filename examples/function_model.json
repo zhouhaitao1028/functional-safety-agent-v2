@@ -1,0 +1,20 @@
+{
+  "functions": [
+    {
+      "id": "FUNC-AEB-001",
+      "name": "自动紧急制动",
+      "purpose": "在检测到前向碰撞风险时请求车辆减速，以降低碰撞风险或碰撞严重度。",
+      "system_boundary": "感知目标列表输入至纵向制动请求输出，不包含制动执行器内部控制。",
+      "operating_scenarios": [
+        {
+          "id": "SCN-URBAN-001",
+          "description": "车辆在城市道路以中低速跟随前车行驶。"
+        }
+      ],
+      "interfaces": ["目标列表", "自车速度", "驾驶员制动输入", "制动减速度请求"],
+      "states": ["关闭", "待机", "预警", "制动", "降级"],
+      "source_refs": ["DEMO-ITEM-DEFINITION-1"]
+    }
+  ]
+}
+

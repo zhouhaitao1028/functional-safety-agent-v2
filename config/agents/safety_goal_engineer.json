@@ -1,0 +1,25 @@
+{
+  "id": "safety_goal_engineer",
+  "title": "安全目标 Engineer",
+  "role": "engineer",
+  "kind": "llm",
+  "business": "从已确认的 HARA 结果导出安全目标、安全状态和容错时间要求候选。",
+  "consumes": ["hara_assessment"],
+  "produces": ["safety_goals"],
+  "output_schema": "safety_goals.schema.json",
+  "knowledge_scopes": ["safety_goal_pattern", "vehicle_domain", "company_template"],
+  "skills": ["functional-safety-knowledge"],
+  "tools": ["knowledge.retrieve_evidence", "knowledge.graph", "artifact.read"],
+  "deterministic_checks": ["unique_ids"],
+  "approval_required": true,
+  "api": {
+    "default_provider": "openai_compatible",
+    "default_model": "",
+    "provider_env": "FS_AGENT_SAFETY_GOAL_PROVIDER",
+    "base_url_env": "FS_AGENT_SAFETY_GOAL_BASE_URL",
+    "api_key_env": "FS_AGENT_SAFETY_GOAL_API_KEY",
+    "model_env": "FS_AGENT_SAFETY_GOAL_MODEL",
+    "temperature": 0.1,
+    "timeout_seconds": 180
+  }
+}

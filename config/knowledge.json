@@ -1,0 +1,16 @@
+{
+  "embedding": {
+    "provider": "auto",
+    "base_url_env": "FS_KNOWLEDGE_EMBEDDING_BASE_URL",
+    "api_key_env": "FS_KNOWLEDGE_EMBEDDING_API_KEY",
+    "model_env": "FS_KNOWLEDGE_EMBEDDING_MODEL",
+    "timeout_seconds": 60,
+    "fallback_dimensions": 256
+  },
+  "retrieval": {
+    "lexical_weight": 0.6,
+    "vector_weight": 0.4,
+    "approved_only_by_default": true,
+    "graph_depth": 1
+  }
+}

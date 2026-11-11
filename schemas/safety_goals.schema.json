@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Safety Goals",
+  "type": "object",
+  "required": ["safety_goals"],
+  "properties": {
+    "safety_goals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "hara_assessment_ids", "statement", "asil", "safe_state"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1},
+          "hara_assessment_ids": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "statement": {"type": "string", "minLength": 1},
+          "asil": {"type": "string", "enum": ["QM", "A", "B", "C", "D"]},
+          "safe_state": {"type": "string", "minLength": 1},
+          "rationale": {"type": "string"}
+        }
+      }
+    }
+  }
+}
+

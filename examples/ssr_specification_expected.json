@@ -1,0 +1,88 @@
+{
+  "requirements": [
+    {
+      "id": "SSR-001",
+      "statement": "当车速信号超过 120 km/h 且持续 200 ms 时，软件应在 50 ms 内进入限速降级模式",
+      "asil": "D",
+      "category": "Functional Requirement",
+      "operating_mode": "降级模式（限速）",
+      "allocation": "TBD",
+      "implemented_by": "TBD",
+      "parent_tsr_ids": ["TSR-001"],
+      "verification_criteria": ["注入车速超过 120 km/h 且持续至少 200 ms，验证软件在 50 ms 内进入限速降级模式"],
+      "status": "Accepted",
+      "owner": "TBD",
+      "assumptions": []
+    },
+    {
+      "id": "SSR-002",
+      "statement": "当驱动扭矩请求与驾驶员意图不一致持续超过 2 s 时，软件应关闭扭矩输出并点亮警告指示",
+      "asil": "D",
+      "category": "Functional Requirement",
+      "operating_mode": "TBD",
+      "allocation": "TBD",
+      "implemented_by": "TBD",
+      "parent_tsr_ids": ["TSR-002"],
+      "verification_criteria": ["构造扭矩请求与驾驶员意图不一致超过 2 s，验证软件关闭扭矩输出并点亮警告指示"],
+      "status": "Accepted",
+      "owner": "TBD",
+      "assumptions": []
+    },
+    {
+      "id": "SSR-003",
+      "statement": "软件应每 10 ms 检查一次制动踏板信号的有效性，包括范围与冗余一致性",
+      "asil": "B",
+      "category": "Functional Requirement",
+      "operating_mode": "正常模式",
+      "allocation": "TBD",
+      "implemented_by": "TBD",
+      "parent_tsr_ids": ["TSR-003"],
+      "verification_criteria": ["注入范围超限或冗余不一致的制动踏板信号，验证软件在 10 ms 检查周期内检出并标记无效"],
+      "status": "Accepted",
+      "owner": "TBD",
+      "assumptions": []
+    },
+    {
+      "id": "SSR-004",
+      "statement": "检测到传感器信号无效时，软件应使用降级值并在 100 ms 内上报故障码",
+      "asil": "B",
+      "category": "Functional Requirement",
+      "operating_mode": "降级模式",
+      "allocation": "TBD",
+      "implemented_by": "TBD",
+      "parent_tsr_ids": ["TSR-004"],
+      "verification_criteria": ["注入无效传感器信号，验证软件采用降级值并在 100 ms 内上报故障码"],
+      "status": "Accepted",
+      "owner": "TBD",
+      "assumptions": []
+    },
+    {
+      "id": "SSR-005",
+      "statement": "软件应通过 SPI 每 5 ms 与安全监控芯片交换安全状态字，连续 3 次丢帧时应触发安全状态",
+      "asil": "C",
+      "category": "Functional Requirement",
+      "operating_mode": "TBD",
+      "allocation": "TBD",
+      "implemented_by": "TBD",
+      "parent_tsr_ids": ["TSR-005"],
+      "verification_criteria": ["注入连续 3 次 SPI 丢帧，验证软件触发安全状态"],
+      "status": "Accepted",
+      "owner": "TBD",
+      "assumptions": []
+    },
+    {
+      "id": "SSR-006",
+      "statement": "在整车下电流程中，软件应在 300 ms 内完成安全相关数据的非易失存储",
+      "asil": "A",
+      "category": "Functional Requirement",
+      "operating_mode": "下电模式",
+      "allocation": "TBD",
+      "implemented_by": "TBD",
+      "parent_tsr_ids": ["TSR-006"],
+      "verification_criteria": ["触发整车下电流程，验证软件在 300 ms 内完成安全数据非易失存储且掉电后可恢复"],
+      "status": "Accepted",
+      "owner": "TBD",
+      "assumptions": []
+    }
+  ]
+}

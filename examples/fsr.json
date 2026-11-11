@@ -1,0 +1,18 @@
+{
+  "requirements": [
+    {
+      "id": "FSR-AEB-001",
+      "safety_goal_ids": ["SG-AEB-001"],
+      "fault_tree_node_ids": ["BE-AEB-001", "BE-AEB-002", "BE-AEB-003"],
+      "statement": "系统应独立监控制动请求的触发条件，并在检测到非预期请求时抑制危险制动输出。",
+      "asil": "D",
+      "allocation": "AEB控制器与独立安全监控模块",
+      "timing_constraint": "TBD：应由车辆动力学与危害分析确认",
+      "verification_criteria": [
+        "注入错误目标风险判断后，危险制动请求应被检测并抑制。"
+      ],
+      "assumptions": ["演示需求，不得直接用于量产项目。"]
+    }
+  ]
+}
+

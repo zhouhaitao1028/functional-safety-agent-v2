@@ -1,0 +1,47 @@
+{
+  "type": "object",
+  "required": [
+    "schema_version",
+    "generated_at",
+    "operation",
+    "status",
+    "source",
+    "source_fingerprint",
+    "summary",
+    "artifacts",
+    "result",
+    "requires_human_confirmation",
+    "limitations"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "minLength": 1},
+    "operation": {
+      "type": "string",
+      "enum": ["analyze_package", "generate_overview", "compare_overviews"]
+    },
+    "status": {"type": "string", "enum": ["completed"]},
+    "engine": {"type": "string"},
+    "source": {"type": "object"},
+    "source_fingerprint": {"type": "string", "minLength": 64},
+    "summary": {"type": "object"},
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "path", "sha256"],
+        "properties": {
+          "type": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "minLength": 1},
+          "sha256": {"type": "string", "minLength": 64}
+        }
+      }
+    },
+    "result": {"type": "object"},
+    "requires_human_confirmation": {"type": "boolean"},
+    "limitations": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}

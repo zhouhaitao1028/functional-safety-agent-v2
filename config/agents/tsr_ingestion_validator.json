@@ -1,0 +1,16 @@
+{
+  "id": "tsr_ingestion_validator",
+  "title": "TSR 输入 Validator",
+  "role": "validator",
+  "kind": "deterministic",
+  "business": "校验从权威输入表抽取的技术安全需求结构、ASIL、来源和 ID 唯一性。",
+  "consumes": ["source_material"],
+  "produces": ["tsr_requirements"],
+  "output_schema": "tsr_requirements.schema.json",
+  "knowledge_scopes": [],
+  "skills": [],
+  "tools": [],
+  "deterministic_checks": ["unique_ids"],
+  "approval_required": true,
+  "api": null
+}

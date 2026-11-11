@@ -1,0 +1,84 @@
+{
+  "id": "iso26262-concept-to-fsr-example",
+  "version": "0.2.0",
+  "description": "可选示例，不是系统强制流程；Manager 可按任务生成更短、并行或不同顺序的工作计划。",
+  "stages": [
+    {
+      "id": "function_model",
+      "title": "功能与运行场景建模",
+      "agent": "function_model_engineer",
+      "schema": "function_model.schema.json",
+      "output_artifact": "01_function_model.json",
+      "depends_on": [],
+      "knowledge_tags": ["vehicle_domain", "function_model"],
+      "deterministic_checks": ["unique_ids"],
+      "approval_required": true
+    },
+    {
+      "id": "malfunction_analysis",
+      "title": "功能失效与危害事件候选分析",
+      "agent": "malfunction_analysis_engineer",
+      "schema": "malfunction_analysis.schema.json",
+      "output_artifact": "02_malfunction_analysis.json",
+      "depends_on": ["function_model"],
+      "knowledge_tags": ["failure_mode", "hara_scenario"],
+      "deterministic_checks": ["unique_ids"],
+      "approval_required": true
+    },
+    {
+      "id": "hara_assessment",
+      "title": "HARA S/E/C评价与ASIL计算",
+      "agent": "hara_engineer",
+      "schema": "hara_assessment.schema.json",
+      "output_artifact": "03_hara_assessment.json",
+      "depends_on": ["malfunction_analysis"],
+      "knowledge_tags": ["hara_scenario", "asil_rule"],
+      "deterministic_checks": ["unique_ids", "asil_matrix"],
+      "approval_required": true
+    },
+    {
+      "id": "safety_goals",
+      "title": "安全目标与安全状态导出",
+      "agent": "safety_goal_engineer",
+      "schema": "safety_goals.schema.json",
+      "output_artifact": "04_safety_goals.json",
+      "depends_on": ["hara_assessment"],
+      "knowledge_tags": ["safety_goal_pattern", "vehicle_domain"],
+      "deterministic_checks": ["unique_ids"],
+      "approval_required": true
+    },
+    {
+      "id": "fault_tree",
+      "title": "安全事件FTA与最小割集",
+      "agent": "fault_tree_engineer",
+      "schema": "fault_tree.schema.json",
+      "output_artifact": "05_fault_tree.json",
+      "depends_on": ["safety_goals"],
+      "knowledge_tags": ["failure_mode", "safety_mechanism"],
+      "deterministic_checks": ["unique_ids", "minimal_cut_sets"],
+      "approval_required": true
+    },
+    {
+      "id": "functional_safety_requirements",
+      "title": "功能安全需求FSR导出与分配",
+      "agent": "fsr_engineer",
+      "schema": "fsr.schema.json",
+      "output_artifact": "06_functional_safety_requirements.json",
+      "depends_on": ["safety_goals", "fault_tree"],
+      "knowledge_tags": ["fsr_pattern", "vehicle_domain"],
+      "deterministic_checks": ["unique_ids"],
+      "approval_required": true
+    },
+    {
+      "id": "traceability",
+      "title": "端到端追溯完整性验证",
+      "agent": "traceability_validator",
+      "schema": "traceability.schema.json",
+      "output_artifact": "07_traceability.json",
+      "depends_on": ["functional_safety_requirements"],
+      "knowledge_tags": [],
+      "deterministic_checks": ["traceability"],
+      "approval_required": true
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "id": "legacy-company-functional-safety-assets",
+    "version": "source-index-0.1.0",
+    "status": "draft",
+    "source": "旧项目 projects/_template 中的公司指导手册与 Word/Excel 模板",
+    "tags": ["company_template", "company_process", "legacy_source", "pending_extraction"]
+  },
+  "content": {
+    "access_mode": "external_reference",
+    "ingestion_status": "registered_pending_extraction_and_review",
+    "relative_root": "../agent-V4-v16.1/agent-V4-v16.1/Audit-Agent-V4-v1.6.1-20260924/projects/_template",
+    "source_folders": {
+      "01_指导手册": "企业流程、方法和业务规则的原始来源",
+      "02_模板": "正式交付件版式、字段和工作表结构的原始来源",
+      "03_输入物": "任务输入示例，不自动视为知识",
+      "04_过程产物": "过程证据和中间产物，不自动视为批准样例",
+      "05_输出物": "历史输出位置，不自动视为黄金样例"
+    },
+    "representative_assets": [
+      "03_软件安全需求/01_指导手册/IM-AP-016-B_功能安全指导手册_软件需求分析.docx",
+      "03_软件安全需求/02_模板/IM-AP-001-A-F38_软件安全需求规范.xlsx",
+      "04_软件安全分析/01_指导手册/IM-AP-015-B_功能安全指导手册_FTA.docx",
+      "04_软件安全分析/02_模板/02_FTA/IM-AP-001-A-F44_软件安全分析-FTA.xlsx",
+      "04_软件安全分析/01_指导手册/IM-AP-014-B_功能安全指导手册_FMEA.docx",
+      "05_软件安全架构/02_模板/IM-AP-001-A-F43_软件安全架构设计规范.docx",
+      "07_软件单元验证与测试/01_指导手册/IM-AP-019-B_功能安全指导手册_软件单元测试.docx",
+      "08_软件集成测试/01_指导手册/IM-AP-020-B_功能安全指导手册_软件集成测试.docx"
+    ],
+    "promotion_rule": "原文件经过解析、字段定位、版本确认和领域负责人审核后，才可生成 status=approved 的规则、模板结构或黄金样例知识。"
+  }
+}

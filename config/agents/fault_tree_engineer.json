@@ -1,0 +1,25 @@
+{
+  "id": "fault_tree_engineer",
+  "title": "FTA Engineer",
+  "role": "engineer",
+  "kind": "llm",
+  "business": "构建安全顶事件、逻辑门和底事件候选；最小割集由确定性程序计算。",
+  "consumes": ["safety_goals"],
+  "produces": ["fault_tree"],
+  "output_schema": "fault_tree.schema.json",
+  "knowledge_scopes": ["failure_mode", "safety_mechanism", "company_template"],
+  "skills": ["functional-safety-knowledge"],
+  "tools": ["knowledge.retrieve_evidence", "knowledge.graph", "artifact.read"],
+  "deterministic_checks": ["unique_ids", "minimal_cut_sets"],
+  "approval_required": true,
+  "api": {
+    "default_provider": "openai_compatible",
+    "default_model": "",
+    "provider_env": "FS_AGENT_FTA_PROVIDER",
+    "base_url_env": "FS_AGENT_FTA_BASE_URL",
+    "api_key_env": "FS_AGENT_FTA_API_KEY",
+    "model_env": "FS_AGENT_FTA_MODEL",
+    "temperature": 0.1,
+    "timeout_seconds": 240
+  }
+}

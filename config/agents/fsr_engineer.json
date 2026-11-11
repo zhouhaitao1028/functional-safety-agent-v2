@@ -1,0 +1,25 @@
+{
+  "id": "fsr_engineer",
+  "title": "功能安全需求 Engineer",
+  "role": "engineer",
+  "kind": "llm",
+  "business": "根据安全目标和分析证据导出 FSR、分配对象、验证方法和时间约束候选。",
+  "consumes": ["safety_goals", "fault_tree"],
+  "produces": ["fsr"],
+  "output_schema": "fsr.schema.json",
+  "knowledge_scopes": ["fsr_pattern", "vehicle_domain", "company_template"],
+  "skills": ["functional-safety-knowledge"],
+  "tools": ["knowledge.retrieve_evidence", "knowledge.graph", "artifact.read"],
+  "deterministic_checks": ["unique_ids"],
+  "approval_required": true,
+  "api": {
+    "default_provider": "openai_compatible",
+    "default_model": "",
+    "provider_env": "FS_AGENT_FSR_PROVIDER",
+    "base_url_env": "FS_AGENT_FSR_BASE_URL",
+    "api_key_env": "FS_AGENT_FSR_API_KEY",
+    "model_env": "FS_AGENT_FSR_MODEL",
+    "temperature": 0.1,
+    "timeout_seconds": 240
+  }
+}

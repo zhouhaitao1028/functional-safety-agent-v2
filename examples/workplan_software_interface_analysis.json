@@ -1,0 +1,31 @@
+{
+  "id": "software-interface-analysis",
+  "version": "1.0.0",
+  "goal": "审查软件组件接口收发关系、跨应用层链路完整性和配置变更",
+  "inputs": [
+    {
+      "id": "IN-INTERFACE-PACKAGE",
+      "type": "software_interface_package",
+      "location": "../外部接口生成与对比工具.zip"
+    }
+  ],
+  "work_items": [
+    {
+      "id": "W01",
+      "title": "生成并审查软件接口追溯结果",
+      "agent_id": "software_interface_engineer",
+      "depends_on": [],
+      "input_refs": ["IN-INTERFACE-PACKAGE"],
+      "parameters": {
+        "operation": "analyze_package",
+        "max_findings": 500
+      },
+      "output": {
+        "id": "OUT-SOFTWARE-INTERFACE-TASK",
+        "type": "software_interface_task_result",
+        "artifact": "01_software_interface_task.json"
+      },
+      "approval_required": true
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+dist/
+build/
+*.egg-info/
+.venv/
+node_modules/
+frontend/dist/
+data/projects/
+data/knowledge/
+data/wiki/
+tests/_tmp/
+*.log
+.env
+.env.*
+!config/api.env.example
+config/local/
+.idea/
+data/
+# Web console build output is committed so `python run.py web` works after clone
+!src/fs_agent_v2/web/static/dist/
+!src/fs_agent_v2/web/static/dist/**
+

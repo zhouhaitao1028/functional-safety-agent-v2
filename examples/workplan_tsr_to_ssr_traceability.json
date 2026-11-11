@@ -1,0 +1,41 @@
+{
+  "id": "text3-tsr-to-ssr-traceability",
+  "version": "1.0.0",
+  "goal": "复现旧项目 text3：依据公司软件需求分析指导手册和模板，由 6 条 TSR 导出 SSR，并验证 TSR 到 SSR 的完整双向追溯。",
+  "inputs": [
+    {
+      "id": "INPUT-TEXT3-TSR",
+      "type": "source_material",
+      "location": "旧项目 text3/03_软件安全需求/03_输入物/TSR_测试用例.xlsx"
+    }
+  ],
+  "work_items": [
+    {
+      "id": "W01",
+      "title": "校验并登记 6 条权威 TSR",
+      "agent_id": "tsr_ingestion_validator",
+      "depends_on": [],
+      "input_refs": ["INPUT-TEXT3-TSR"],
+      "output": {"id": "OUT-TSR", "type": "tsr_requirements", "artifact": "01_tsr_requirements.json"},
+      "approval_required": true
+    },
+    {
+      "id": "W02",
+      "title": "依据指导手册和模板由 TSR 导出可验证 SSR",
+      "agent_id": "ssr_derivation_engineer",
+      "depends_on": ["W01"],
+      "input_refs": ["OUT-TSR"],
+      "output": {"id": "OUT-SSR", "type": "ssr_specification", "artifact": "02_ssr_specification.json"},
+      "approval_required": true
+    },
+    {
+      "id": "W03",
+      "title": "确定性验证 TSR 到 SSR 的双向追溯和覆盖率",
+      "agent_id": "traceability_validator",
+      "depends_on": ["W01", "W02"],
+      "input_refs": ["OUT-TSR", "OUT-SSR"],
+      "output": {"id": "OUT-TRACE", "type": "traceability", "artifact": "03_tsr_ssr_traceability.json"},
+      "approval_required": true
+    }
+  ]
+}
