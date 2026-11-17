@@ -618,16 +618,17 @@ class InterfaceToolsTest(unittest.TestCase):
         self.assertEqual("COMP-A", by_direction["Input"].components)
         self.assertEqual("FM-FMService→COMP-A", by_direction["Input"].relation)
 
-    def test_component_rows_require_mapping_port(self):
-        # V261111 全量矩阵表兼容：组件行只有信号Mapping首段（端口名）非空才保留。
+    def test_component_rows_require_matrix_mapping_triple(self):
+        # V261111 全量矩阵表兼容：组件行信号Mapping三元组（端口|TopDT|Element）
+        # 必须能在矩阵映射块中找到才保留——桌面工具以矩阵为口径过滤 XLSM 词典行。
         generator = FastInterfaceOverviewGenerator()
 
-        def make_row(name, direction, port):
+        def make_row(name, direction, port, top="Dt_DEMO", elem="Elem"):
             values = [""] * 14
             values[0] = name
             values[2] = direction
-            values[10] = "Dt_DEMO"
-            values[11] = "Elem"
+            values[10] = top
+            values[11] = elem
             values[12] = port
             return _ModuleRow(
                 values=values,
@@ -637,12 +638,14 @@ class InterfaceToolsTest(unittest.TestCase):
             )
 
         rows = [
-            make_row("SIG_NO_PORT_U8", "Input", ""),  # 端口名缺失 → 剔除
-            make_row("SIG_WITH_PORT_U8", "Input", "PpDemo"),
+            make_row("SIG_STALE_U8", "Input", "PpStale"),  # 三元组不在矩阵 → 剔除
+            make_row("SIG_MATCHED_U8", "Input", "PpDemo"),
+            make_row("SIG_HALF_U8", "Input", "PpHalf", top="", elem=""),  # 残缺 → 剔除
         ]
-        kept = generator._component_rows(rows)
+        mappings = frozenset({"PpDemo|Dt_DEMO|Elem"})
+        kept = generator._component_rows(rows, mappings)
         self.assertEqual(
-            ["SIG_WITH_PORT_U8"], [row.name for row in kept]
+            ["SIG_MATCHED_U8"], [row.name for row in kept]
         )
         self.assertEqual("FM-FMService→COMP-A", kept[0].relation)
 

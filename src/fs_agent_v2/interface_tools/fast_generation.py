@@ -88,6 +88,11 @@ def _text(value: object) -> str:
     return "" if value is None else str(value).strip()
 
 
+def _vba_trim(value: object) -> str:
+    """桌面工具 VBA Trim 语义：只去首尾空格，保留换行/制表符。"""
+    return "" if value is None else str(value).strip(" ")
+
+
 def _ordered_add(target: OrderedDict[str, None], value: str) -> None:
     if value and value not in target:
         target[value] = None
@@ -211,8 +216,10 @@ class FastInterfaceOverviewGenerator:
                 item.swc = mapped["swc"] or "未匹配"
                 item.adapter = SWC_TO_COMPONENT.get(item.swc, "未匹配")
 
-        component_rows = self._component_rows(module_rows)
         matrix_rows = self._matrix_rows(matrix_path, config)
+        # V261111：组件行以矩阵映射块三元组为过滤口径，先解析矩阵
+        matrix_mappings = frozenset(row.mapping for row in matrix_rows)
+        component_rows = self._component_rows(module_rows, matrix_mappings)
         phase_seconds["build_component_and_matrix_rows"] = round(
             perf_counter() - phase_started, 3
         )
@@ -334,11 +341,11 @@ class FastInterfaceOverviewGenerator:
             for values in FastInterfaceOverviewGenerator._sheet_rows(
                 archive, SIGNAL_SHEET, min_row=9, max_col=14
             ):
-                # V261111 兼容：中文含义列（col G，index 6）保留原始文本——
-                # 桌面工具不做 strip，单元格尾部换行/制表符会原样进入总览表。
+                # V261111 兼容：中文含义列（col G，index 6）按 VBA Trim
+                # 处理——只去首尾空格，保留换行/制表符。
                 source_rows.append(
                     [
-                        "" if value is None else str(value) if index == 6 else _text(value)
+                        _vba_trim(value) if index == 6 else _text(value)
                         for index, value in enumerate(values)
                     ]
                 )
@@ -362,7 +369,9 @@ class FastInterfaceOverviewGenerator:
             return old_parts[0].strip() + "→" + old_parts[1].strip() + "," + new_parts[1].strip()
         return current + "," + new
 
-    def _component_rows(self, rows: list[_ModuleRow]) -> list[_ModuleRow]:
+    def _component_rows(
+        self, rows: list[_ModuleRow], matrix_mappings: frozenset[str]
+    ) -> list[_ModuleRow]:
         senders: dict[str, str] = {}
         receivers: defaultdict[str, OrderedDict[str, None]] = defaultdict(OrderedDict)
         for item in rows:
@@ -387,10 +396,12 @@ class FastInterfaceOverviewGenerator:
                     new = ""
                 if new:
                     item.relation = self._merge_relation(item.relation, new)
-            # V261111 全量矩阵表兼容：组件行只有信号Mapping首段（端口名，
-            # values[12]）非空才保留——oracle 里不存在首段为空的组件行
-            # （69 行 |Dt_x|elem 与 1428 行 || 全空均被桌面工具剔除）。
-            if not item.values[12] or not item.relation:
+            # V261111 全量矩阵表兼容：组件行的信号Mapping三元组
+            # （端口名|TopDataType|FullElement）必须能在矩阵映射块
+            # （col25/23/24 与 col42/40/41）中找到才保留——桌面工具以
+            # 矩阵为口径过滤 XLSM 词典行，XLSM 与矩阵数据漂移的陈旧
+            # 词条（5 行）与无端口词条（1497 行）都被剔除，零误杀。
+            if item.mapping not in matrix_mappings or not item.relation:
                 continue
             key = (item.name, item.direction, item.mapping, item.component)
             if key in seen:
@@ -454,15 +465,15 @@ class FastInterfaceOverviewGenerator:
                 ):
                     values = list(row) + [None] * (43 - len(row))
                     if _text(values[11]):
-                        # 与桌面工具一致：中文含义（块内第 7 列，col19）保留原始文本
+                        # 与桌面工具一致：中文含义（块内第 7 列，col19）按 VBA Trim 处理
                         block = [
-                            "" if value is None else str(value) if index == 6 else _text(value)
+                            _vba_trim(value) if index == 6 else _text(value)
                             for index, value in enumerate(values[12:26])
                         ]
                         output.append(_MatrixRow(block, _text(values[11])))
                     if _text(values[28]):
                         block = [
-                            "" if value is None else str(value) if index == 6 else _text(value)
+                            _vba_trim(value) if index == 6 else _text(value)
                             for index, value in enumerate(values[29:43])
                         ]
                         output.append(_MatrixRow(block, _text(values[28])))
