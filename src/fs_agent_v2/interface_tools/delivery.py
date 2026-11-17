@@ -411,13 +411,22 @@ class InterfaceDeliveryService:
             inputs = root / "Inputs"
             if not inputs.is_dir():
                 raise ContractError(f"package has no Inputs directory: {source}")
-            shutil.copytree(inputs, target / "Inputs", dirs_exist_ok=True)
+            # 跳过 Excel 打开文件时产生的 ~$ 锁文件——源文件被 Excel
+            # 独占锁定，复制会直接 PermissionError。
+            skip_locked = shutil.ignore_patterns("~$*", "~*.tmp")
+            shutil.copytree(
+                inputs,
+                target / "Inputs",
+                dirs_exist_ok=True,
+                ignore=skip_locked,
+            )
             overview_source = root / "Outputs" / "01_接口收发表"
             if overview_source.is_dir():
                 shutil.copytree(
                     overview_source,
                     target / "Outputs" / "01_接口收发表",
                     dirs_exist_ok=True,
+                    ignore=skip_locked,
                 )
             copied = sum(1 for path in target.rglob("*") if path.is_file())
             kind = "directory"
@@ -440,7 +449,7 @@ class InterfaceDeliveryService:
                 continue
             name = self._decode_zip_name(item).replace("\\", "/")
             relative = self._business_relative(name)
-            if relative is None:
+            if relative is None or relative.name.startswith("~$"):
                 continue
             destination = target.joinpath(*relative.parts)
             destination.parent.mkdir(parents=True, exist_ok=True)
