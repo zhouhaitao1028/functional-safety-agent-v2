@@ -50,6 +50,13 @@ class SoftwareInterfaceIntentRuntime:
     ) -> dict:
         if not isinstance(request, str) or not request.strip():
             raise ContractError("software interface request must be non-empty")
+        # 确定性快速路径：当前轮指令明确时零模型直出意图，省去一次
+        # 25-30s 的 LLM 调用；模糊请求（对话指代、缺输入、纯提问）照旧走模型。
+        deterministic = self._deterministic_intent(
+            request, primary_input_supplied=primary_input_supplied
+        )
+        if deterministic is not None:
+            return deterministic
         agent = self.engine.registry.get("software_interface_engineer")
         if agent.api is None:
             raise ContractError(
@@ -170,6 +177,65 @@ class SoftwareInterfaceIntentRuntime:
         if any(word in compact for word in analyze_words):
             return "analyze_package"
         return None
+
+    @classmethod
+    def _deterministic_intent(
+        cls, request: str, *, primary_input_supplied: bool
+    ) -> dict | None:
+        """零模型直出明确指令的意图；拿不准时返回 None 交给 LLM。
+
+        复用 ``_explicit_operation`` 的白名单语义：只有当前轮指令自身
+        无歧义时才绕过模型。生成/分析还要求主输入已就位，缺输入时交给
+        模型决定追问（与其 clarify 行为保持一致）；对比任务下游本身有
+        确定性的历史产物补位与缺输入询问，无需模型参与。
+        """
+        operation = cls._explicit_operation(request)
+        if operation is None:
+            return None
+        if operation in ("generate_overview", "analyze_package") and (
+            not primary_input_supplied
+        ):
+            return None
+        compact = "".join(request.casefold().split())
+        version_ordering = (
+            "modification_time"
+            if any(
+                marker in compact
+                for marker in (
+                    "修改时间",
+                    "更新时间",
+                    "时间较晚",
+                    "时间更晚",
+                    "时间更新",
+                    "时间更接近",
+                    "最近修改",
+                    "mtime",
+                )
+            )
+            else "input_order"
+        )
+        return {
+            **cls._apply_explicit_operation(
+                {
+                    "interaction": "execute",
+                    "operation": operation,
+                    "compare_to_existing": False,
+                    "version_ordering": version_ordering,
+                    "summary": "",
+                    "confidence": 0.99,
+                    "clarification_needed": False,
+                    "clarification_question": "",
+                    "assistant_reply": "",
+                },
+                operation,
+            ),
+            "provider": "deterministic-rules",
+            "model": "rule-based-intent",
+            "generated_at": datetime.now(timezone.utc).isoformat(
+                timespec="seconds"
+            ),
+            "method": "deterministic_interface_intent",
+        }
 
     @staticmethod
     def _apply_explicit_operation(intent: dict, operation: str) -> dict:

@@ -56,6 +56,64 @@ class SoftwareInterfaceIntentRuntimeTest(unittest.TestCase):
     def tearDown(self):
         self.temporary.cleanup()
 
+    def test_deterministic_fast_path_skips_model_for_explicit_generation(self):
+        client = FakeIntentClient([])
+        intent = SoftwareInterfaceIntentRuntime(self.engine).interpret(
+            "生成接口总览表",
+            primary_input_supplied=True,
+            secondary_input_supplied=False,
+            client=client,
+        )
+        self.assertEqual("generate_overview", intent["operation"])
+        self.assertEqual("execute", intent["interaction"])
+        self.assertFalse(intent["clarification_needed"])
+        self.assertEqual("deterministic_interface_intent", intent["method"])
+        self.assertEqual([], client.calls)
+
+    def test_deterministic_compare_applies_mtime_rule_without_model(self):
+        client = FakeIntentClient([])
+        intent = SoftwareInterfaceIntentRuntime(self.engine).interpret(
+            "对比两个版本，修改时间较晚的是新版",
+            primary_input_supplied=True,
+            secondary_input_supplied=True,
+            client=client,
+        )
+        self.assertEqual("compare_overviews", intent["operation"])
+        self.assertEqual("modification_time", intent["version_ordering"])
+        self.assertEqual("deterministic_interface_intent", intent["method"])
+        self.assertEqual([], client.calls)
+
+    def test_deterministic_generate_without_primary_input_falls_back_to_model(self):
+        # 生成指令但主输入未就位 → 交给模型裁决；模型的 clarify 仍会被
+        # 显式指令覆盖修正为 execute（由下游发起缺输入询问）。
+        client = FakeIntentClient(
+            [
+                tool_response(
+                    interaction="clarify",
+                    operation="generate_overview",
+                    compare_to_existing=False,
+                    version_ordering="input_order",
+                    summary="等待接口包路径",
+                    confidence=0.7,
+                    clarification_needed=True,
+                    clarification_question="请先上传接口包。",
+                    assistant_reply="",
+                )
+            ]
+        )
+        intent = SoftwareInterfaceIntentRuntime(self.engine).interpret(
+            "生成接口总览表",
+            primary_input_supplied=False,
+            secondary_input_supplied=False,
+            client=client,
+        )
+        self.assertEqual(1, len(client.calls))
+        self.assertEqual("generate_overview", intent["operation"])
+        self.assertEqual("execute", intent["interaction"])
+        self.assertEqual(
+            "bounded_interface_intent_explicit_override", intent["method"]
+        )
+
     def test_model_tool_call_selects_comparison_without_receiving_paths(self):
         client = FakeIntentClient(
             [
@@ -73,7 +131,7 @@ class SoftwareInterfaceIntentRuntimeTest(unittest.TestCase):
             ]
         )
         intent = SoftwareInterfaceIntentRuntime(self.engine).interpret(
-            "比较两个版本发生了哪些变化",
+            "看看这两个文件发生了什么",
             primary_input_supplied=True,
             secondary_input_supplied=True,
             client=client,
@@ -102,7 +160,7 @@ class SoftwareInterfaceIntentRuntimeTest(unittest.TestCase):
             ]
         )
         intent = SoftwareInterfaceIntentRuntime(self.engine).interpret(
-            "生成接口总览表",
+            "基于接口包出一份总览表",
             primary_input_supplied=True,
             secondary_input_supplied=False,
             client=client,
@@ -142,7 +200,7 @@ class SoftwareInterfaceIntentRuntimeTest(unittest.TestCase):
             ]
         )
         intent = SoftwareInterfaceIntentRuntime(self.engine).interpret(
-            "生成接口总览表",
+            "基于接口包出一份总览表",
             primary_input_supplied=True,
             secondary_input_supplied=False,
             client=client,
@@ -217,6 +275,8 @@ class SoftwareInterfaceIntentRuntimeTest(unittest.TestCase):
         self.assertIn("哪个时间更接近", messages[3]["content"])
 
     def test_explicit_generation_switch_overrides_pending_comparison_memory(self):
+        # 显式生成指令 + 主输入已就位 → 快速路径直接执行，
+        # 不被待补全的对比记忆或模型拖入追问。
         client = FakeIntentClient(
             [
                 tool_response(
@@ -252,9 +312,8 @@ class SoftwareInterfaceIntentRuntimeTest(unittest.TestCase):
         self.assertFalse(intent["clarification_needed"])
         self.assertFalse(intent["compare_to_existing"])
         self.assertEqual("", intent["clarification_question"])
-        self.assertEqual(
-            "bounded_interface_intent_explicit_override", intent["method"]
-        )
+        self.assertEqual("deterministic_interface_intent", intent["method"])
+        self.assertEqual([], client.calls)
 
 
 if __name__ == "__main__":
