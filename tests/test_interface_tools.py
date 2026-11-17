@@ -30,6 +30,7 @@ from fs_agent_v2.interface_tools.fast_generation import (  # noqa: E402
     FastInterfaceOverviewGenerator,
     HEADERS,
     _MatrixRow,
+    _ModuleRow,
 )
 from fs_agent_v2.orchestration import (  # noqa: E402
     DynamicWorkEngine,
@@ -565,6 +566,85 @@ class InterfaceToolsTest(unittest.TestCase):
         late.write_bytes(b"placeholder")
         os.utime(early, (1000000000, 1000000000))
         self.assertEqual(late, FastInterfaceOverviewGenerator._latest_matrix(matrix_dir))
+
+    def test_matrix_rows_falls_back_to_swc_sheets(self):
+        # V261111 全量矩阵表：标准页缺失时回退同名 ``*_swc`` 页，
+        # 块结构与旧标准页同构（col12/29 触发列 + 14 列 In/Out 映射块）。
+        matrix = self.temp_root / "matrix-swc" / "PIE400_全量矩阵表.xlsx"
+        matrix.parent.mkdir(parents=True, exist_ok=True)
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "CtApFuncManager_swc"
+        sheet.append(["header"] * 42)
+        row = [""] * 42
+        row[11] = "Demo.xlsm"  # Unit_Name_In
+        row[12] = "SIG_IN_U8"  # Name_In
+        row[14] = "Input"  # StorageClass_In
+        row[22] = "Dt_SHARED"  # TopDataTypeName_In
+        row[23] = "Shared"  # FullElementName_In
+        row[24] = "PpShared_DeShared"  # InportName
+        sheet.append(row)
+        row = [""] * 42
+        row[28] = "Demo.xlsm"  # Unit_Name_Out
+        row[29] = "SIG_OUT_U8"  # Name_Out
+        row[31] = "Output"  # StorageClass_Out
+        row[39] = "Dt_SHARED"  # TopDataTypeName_Out
+        row[40] = "Shared"  # FullElementName_Out
+        row[41] = "PpShared_DeShared"  # OutportName
+        sheet.append(row)
+        workbook.save(matrix)
+        workbook.close()
+
+        config = {
+            "by_file": {
+                "demo.xlsm": {
+                    "unit": "Demo_",
+                    "component": "COMP-A",
+                    "swc": "FuncManager",
+                }
+            },
+            "rules": [],
+        }
+        rows = FastInterfaceOverviewGenerator()._matrix_rows(matrix, config)
+        self.assertEqual(2, len(rows))
+        by_direction = {row.direction: row for row in rows}
+        self.assertEqual(
+            ["Input", "Output"], sorted(by_direction)
+        )
+        self.assertEqual(
+            "PpShared_DeShared|Dt_SHARED|Shared",
+            by_direction["Input"].mapping,
+        )
+        self.assertEqual("COMP-A", by_direction["Input"].components)
+        self.assertEqual("FM-FMService→COMP-A", by_direction["Input"].relation)
+
+    def test_component_rows_require_mapping_port(self):
+        # V261111 全量矩阵表兼容：组件行只有信号Mapping首段（端口名）非空才保留。
+        generator = FastInterfaceOverviewGenerator()
+
+        def make_row(name, direction, port):
+            values = [""] * 14
+            values[0] = name
+            values[2] = direction
+            values[10] = "Dt_DEMO"
+            values[11] = "Elem"
+            values[12] = port
+            return _ModuleRow(
+                values=values,
+                filename="Demo.xlsm",
+                component="COMP-A",
+                adapter="FM-FMService",
+            )
+
+        rows = [
+            make_row("SIG_NO_PORT_U8", "Input", ""),  # 端口名缺失 → 剔除
+            make_row("SIG_WITH_PORT_U8", "Input", "PpDemo"),
+        ]
+        kept = generator._component_rows(rows)
+        self.assertEqual(
+            ["SIG_WITH_PORT_U8"], [row.name for row in kept]
+        )
+        self.assertEqual("FM-FMService→COMP-A", kept[0].relation)
 
     def _module(self, filename: str, signal: str, direction: str, port: str):
         workbook = Workbook()

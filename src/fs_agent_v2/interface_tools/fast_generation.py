@@ -334,7 +334,14 @@ class FastInterfaceOverviewGenerator:
             for values in FastInterfaceOverviewGenerator._sheet_rows(
                 archive, SIGNAL_SHEET, min_row=9, max_col=14
             ):
-                source_rows.append([_text(value) for value in values])
+                # V261111 兼容：中文含义列（col G，index 6）保留原始文本——
+                # 桌面工具不做 strip，单元格尾部换行/制表符会原样进入总览表。
+                source_rows.append(
+                    [
+                        "" if value is None else str(value) if index == 6 else _text(value)
+                        for index, value in enumerate(values)
+                    ]
+                )
         last_name_row = max(
             (index for index, values in enumerate(source_rows) if values[0]),
             default=-1,
@@ -380,7 +387,10 @@ class FastInterfaceOverviewGenerator:
                     new = ""
                 if new:
                     item.relation = self._merge_relation(item.relation, new)
-            if not item.relation:
+            # V261111 全量矩阵表兼容：组件行只有信号Mapping首段（端口名，
+            # values[12]）非空才保留——oracle 里不存在首段为空的组件行
+            # （69 行 |Dt_x|elem 与 1428 行 || 全空均被桌面工具剔除）。
+            if not item.values[12] or not item.relation:
                 continue
             key = (item.name, item.direction, item.mapping, item.component)
             if key in seen:
@@ -433,18 +443,29 @@ class FastInterfaceOverviewGenerator:
         with ZipFile(path) as archive:
             sheet_names = FastInterfaceOverviewGenerator._sheet_names(archive)
             for sheet_name in MATRIX_SHEETS:
-                if sheet_name not in sheet_names:
+                # V261111 全量矩阵表把映射块挪进 ``*_swc`` 后缀页，块结构
+                # （col12/29 触发列 + 14 列 In/Out 映射块）与旧标准页完全同构，
+                # 因此旧页缺失时直接回退到同名 ``_swc`` 页按同一套规则解析。
+                target = sheet_name if sheet_name in sheet_names else f"{sheet_name}_swc"
+                if target not in sheet_names:
                     continue
                 for row in FastInterfaceOverviewGenerator._sheet_rows(
-                    archive, sheet_name, min_row=2, max_col=43
+                    archive, target, min_row=2, max_col=43
                 ):
                     values = list(row) + [None] * (43 - len(row))
                     if _text(values[11]):
-                        copied = [_text(value) for value in values[12:26]]
-                        output.append(_MatrixRow(copied, _text(values[11])))
+                        # 与桌面工具一致：中文含义（块内第 7 列，col19）保留原始文本
+                        block = [
+                            "" if value is None else str(value) if index == 6 else _text(value)
+                            for index, value in enumerate(values[12:26])
+                        ]
+                        output.append(_MatrixRow(block, _text(values[11])))
                     if _text(values[28]):
-                        copied = [_text(value) for value in values[29:43]]
-                        output.append(_MatrixRow(copied, _text(values[28])))
+                        block = [
+                            "" if value is None else str(value) if index == 6 else _text(value)
+                            for index, value in enumerate(values[29:43])
+                        ]
+                        output.append(_MatrixRow(block, _text(values[28])))
 
         by_file = config["by_file"]
         for item in output:
