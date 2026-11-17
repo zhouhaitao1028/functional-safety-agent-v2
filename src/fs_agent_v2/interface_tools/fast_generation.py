@@ -20,6 +20,10 @@ from ..errors import ContractError
 
 SUMMARY_NAME = "软件组件接口收发总览表.xlsx"
 MISSING_FLOW_TEXT = "链路流信号流缺失"
+# V261111 输出格式保证：全字体宋体 + 信号Mapping N/O 列保持显示、列宽不小于 18
+SUMMARY_FONT_NAME = "宋体"
+SIGNAL_MAPPING_COLUMNS = (14, 15)
+SUMMARY_COLUMN_WIDTH = "18"
 ADAPTER_MODULES = frozenset(
     {
         "ACF-ACFService",
@@ -162,10 +166,18 @@ class FastInterfaceOverviewGenerator:
         modules_dir = package / "Inputs" / "01_PIE_400"
         matrix_dir = package / "Inputs" / "02_PIE_Matrix"
         config_path = package / "Inputs" / "03_UnitConfig" / "Unit2ComponentConfig.xlsx"
+        if not config_path.exists():
+            # V261111：03_UnitConfig 缺失时回退项目根目录同名配置表
+            config_path = package / "Unit2ComponentConfig.xlsx"
         template_path = package / "Templates" / SUMMARY_NAME
-        for required in (modules_dir, matrix_dir, config_path, template_path):
+        for required in (modules_dir, config_path, template_path):
             if not required.exists():
                 raise ContractError(f"fast generation input is missing: {required}")
+        # V261111：矩阵文件先查 Inputs/02_PIE_Matrix，再回退项目根目录
+        try:
+            matrix_path = self._latest_matrix(matrix_dir)
+        except ContractError:
+            matrix_path = self._latest_matrix(package)
 
         module_files = [
             path
@@ -200,7 +212,6 @@ class FastInterfaceOverviewGenerator:
                 item.adapter = SWC_TO_COMPONENT.get(item.swc, "未匹配")
 
         component_rows = self._component_rows(module_rows)
-        matrix_path = self._latest_matrix(matrix_dir)
         matrix_rows = self._matrix_rows(matrix_path, config)
         phase_seconds["build_component_and_matrix_rows"] = round(
             perf_counter() - phase_started, 3
@@ -297,7 +308,7 @@ class FastInterfaceOverviewGenerator:
                 if not key or not value:
                     continue
                 rules.append((key, value, link, relation))
-                normalized = value.replace("，", ",").replace(" ", "")
+                normalized = value.replace("，", ",").replace(" ", "").replace("\t", "")
                 if normalized == "剔除,不做任何处理":
                     exclude_keys.append(key)
             rules.sort(key=lambda item: len(item[0]), reverse=True)
@@ -379,18 +390,43 @@ class FastInterfaceOverviewGenerator:
         return kept
 
     @staticmethod
-    def _latest_matrix(directory: Path) -> Path:
+    def _is_pie_matrix(path: Path) -> bool:
+        """V261111 识别规则：旧格式 pie_matrix_res_ 前缀或含「全量矩阵表」。"""
+        stem = path.stem.casefold().replace(" ", "")
+        return stem.startswith("pie_matrix_res_") or "全量矩阵表" in stem
+
+    @classmethod
+    def _latest_matrix(cls, directory: Path) -> Path:
         candidates = [
             path
-            for path in directory.glob("PIE_Matrix_Res_*.xlsx")
-            if not path.name.startswith("~$")
+            for path in directory.iterdir()
+            if path.is_file()
+            and path.suffix.casefold() == ".xlsx"
+            and not path.name.startswith("~$")
+            and cls._is_pie_matrix(path)
         ]
         if not candidates:
             raise ContractError("PIE Matrix workbook is missing")
+        # V261111：同类并存时优先「全量矩阵表」新格式；
+        # 排序键 = 文件名中最后一个独立 8 位日期 → 修改时间 → 文件名
+        new_style = [
+            path for path in candidates if "全量矩阵表" in path.stem.casefold()
+        ]
+        if new_style:
+            candidates = new_style
+
         def stamp(path: Path) -> str:
-            match = re.search(r"(\d{8})(?!.*\d)", path.stem)
-            return match.group(1) if match else ""
-        return max(candidates, key=lambda path: (stamp(path), path.name.casefold()))
+            matches = re.findall(r"(?<!\d)(\d{8})(?!\d)", path.stem)
+            return matches[-1] if matches else ""
+
+        return max(
+            candidates,
+            key=lambda path: (
+                stamp(path),
+                path.stat().st_mtime_ns,
+                path.name.casefold(),
+            ),
+        )
 
     def _matrix_rows(self, path: Path, config: dict) -> list[_MatrixRow]:
         output: list[_MatrixRow] = []
@@ -640,20 +676,108 @@ class FastInterfaceOverviewGenerator:
                         original_sheet, rows
                     )
                 )
+                # V261111 输出格式保证（收编自 summary_postprocess.py）：
+                # styles.xml 全字体宋体 + Sheet1 信号Mapping N/O 列保持显示
+                styles_part = "xl/styles.xml"
+                updated_styles = (
+                    FastInterfaceOverviewGenerator._apply_summary_fonts(
+                        source.read(styles_part).decode("utf-8")
+                    )
+                )
+                replacement_sheet = (
+                    FastInterfaceOverviewGenerator._show_signal_columns(
+                        replacement_sheet.decode("utf-8")
+                    ).encode("utf-8")
+                )
                 with ZipFile(temporary, "w", allowZip64=True) as target:
                     target.comment = source.comment
                     for member in source.infolist():
-                        payload = (
-                            replacement_sheet
-                            if member.filename == worksheet_part
-                            else source.read(member.filename)
-                        )
+                        if member.filename == worksheet_part:
+                            payload = replacement_sheet
+                        elif member.filename == styles_part:
+                            payload = updated_styles.encode("utf-8")
+                        else:
+                            payload = source.read(member.filename)
                         target.writestr(member, payload)
             temporary.replace(output)
             temporary = None
         finally:
             if temporary is not None:
                 temporary.unlink(missing_ok=True)
+
+    @staticmethod
+    def _apply_summary_fonts(styles_xml: str) -> str:
+        """styles.xml 内全部字体定义统一为宋体（语义同 V261111 _replace_font_names）。"""
+        fonts_pattern = re.compile(r"(<fonts\b[^>]*>)(.*?)(</fonts>)", re.DOTALL)
+        match = fonts_pattern.search(styles_xml)
+        if match is None:
+            raise ContractError("overview template styles.xml has no <fonts> block")
+        font_name_pattern = re.compile(r"(<name\b[^>]*\bval=\")([^\"]*)(\")")
+
+        def replace_font_block(fonts_match: re.Match[str]) -> str:
+            body = font_name_pattern.sub(
+                rf"\g<1>{SUMMARY_FONT_NAME}\g<3>", fonts_match.group(2)
+            )
+            return fonts_match.group(1) + body + fonts_match.group(3)
+
+        return fonts_pattern.sub(replace_font_block, styles_xml, count=1)
+
+    @staticmethod
+    def _show_signal_columns(sheet_xml: str) -> str:
+        """Sheet1 信号Mapping N/O 列取消隐藏、列宽不小于 18（语义同 _show_columns）。"""
+        cols_pattern = re.compile(r"(<cols\b[^>]*>)(.*?)(</cols>)", re.DOTALL)
+        covered: set[int] = set()
+        col_pattern = re.compile(r"<col\b[^>]*/>")
+
+        def update_col(match: re.Match[str]) -> str:
+            tag = match.group(0)
+            attrs = {
+                name: value
+                for name, value in re.findall(r'(\w+)="([^"]*)"', tag)
+            }
+            try:
+                minimum = int(attrs.get("min", "0"))
+                maximum = int(attrs.get("max", str(minimum)))
+            except ValueError:
+                return tag
+            targets = [
+                column
+                for column in SIGNAL_MAPPING_COLUMNS
+                if minimum <= column <= maximum
+            ]
+            if not targets:
+                return tag
+            covered.update(targets)
+            attrs["hidden"] = "0"
+            try:
+                current_width = float(attrs.get("width", "0"))
+            except ValueError:
+                current_width = 0.0
+            if current_width < float(SUMMARY_COLUMN_WIDTH):
+                attrs["width"] = SUMMARY_COLUMN_WIDTH
+                attrs["customWidth"] = "1"
+            rendered = " ".join(f'{name}="{value}"' for name, value in attrs.items())
+            return f"<col {rendered}/>"
+        match = cols_pattern.search(sheet_xml)
+        if match is None:
+            column_xml = (
+                "<cols>"
+                + "".join(
+                    f'<col min="{column}" max="{column}" '
+                    f'width="{SUMMARY_COLUMN_WIDTH}" customWidth="1" hidden="0"/>'
+                    for column in SIGNAL_MAPPING_COLUMNS
+                )
+                + "</cols>"
+            )
+            return sheet_xml.replace("<sheetData", column_xml + "<sheetData", 1)
+        body = col_pattern.sub(update_col, match.group(2))
+        for column in SIGNAL_MAPPING_COLUMNS:
+            if column not in covered:
+                body += (
+                    f'<col min="{column}" max="{column}" '
+                    f'width="{SUMMARY_COLUMN_WIDTH}" customWidth="1" hidden="0"/>'
+                )
+        return sheet_xml[: match.start(2)] + body + sheet_xml[match.end(2):]
 
     @staticmethod
     def _local_tag(element: ElementTree.Element) -> str:

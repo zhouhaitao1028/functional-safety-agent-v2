@@ -5,6 +5,7 @@ from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 import hashlib
 import json
+import os
 import sys
 import unittest
 from unittest.mock import patch
@@ -478,15 +479,19 @@ class InterfaceToolsTest(unittest.TestCase):
             original_parts = {
                 name: archive.read(name)
                 for name in archive.namelist()
-                if name != worksheet_part
+                if name not in (worksheet_part, "xl/styles.xml")
             }
 
         FastInterfaceOverviewGenerator._write_overview(template, output, [row])
 
         with ZipFile(output, "r") as archive:
-            self.assertEqual(set(original_parts) | {worksheet_part}, set(archive.namelist()))
+            self.assertEqual(set(original_parts) | {worksheet_part, "xl/styles.xml"}, set(archive.namelist()))
             for name, payload in original_parts.items():
                 self.assertEqual(payload, archive.read(name), name)
+            # V261111：styles.xml 仅字体名统一为宋体，其余样式定义保持不变
+            styles = archive.read("xl/styles.xml").decode("utf-8")
+            self.assertNotIn('val="Calibri"', styles)
+            self.assertIn('val="宋体"', styles)
 
         generated = load_workbook(output, read_only=False, data_only=False)
         try:
@@ -507,8 +512,59 @@ class InterfaceToolsTest(unittest.TestCase):
             self.assertEqual("center", sheet["AB1"].alignment.horizontal)
             self.assertEqual("must remain unchanged", generated["Evidence"]["A1"].value)
             self.assertEqual("=1+1", generated["Evidence"]["B1"].value)
+            # V261111：信号Mapping N/O 列保持显示、列宽不小于 18
+            for column_letter in ("N", "O"):
+                dimension = sheet.column_dimensions[column_letter]
+                self.assertFalse(dimension.hidden, column_letter)
+                self.assertGreaterEqual(float(dimension.width or 0), 18.0)
         finally:
             generated.close()
+
+    def test_matrix_selection_follows_v261111_rules(self):
+        # 识别规则：pie_matrix_res_ 前缀或含「全量矩阵表」，忽略大小写与空格
+        self.assertTrue(
+            FastInterfaceOverviewGenerator._is_pie_matrix(
+                Path("PIE_Matrix_Res_20260101.xlsx")
+            )
+        )
+        self.assertTrue(
+            FastInterfaceOverviewGenerator._is_pie_matrix(
+                Path("PIE400_全量矩阵表 (with signal mapping)(1).xlsx")
+            )
+        )
+        self.assertFalse(
+            FastInterfaceOverviewGenerator._is_pie_matrix(
+                Path("Unrelated_20260101.xlsx")
+            )
+        )
+
+        matrix_dir = self.temp_root / "matrix-rules"
+        matrix_dir.mkdir(parents=True, exist_ok=True)
+        old_stale = matrix_dir / "PIE_Matrix_Res_20260101.xlsx"
+        old_latest = matrix_dir / "PIE_Matrix_Res_20260202.xlsx"
+        full_format = matrix_dir / "PIE400_全量矩阵表 (with signal mapping).xlsx"
+        decoy = matrix_dir / "Unrelated_20269999.xlsx"
+        for path in (old_stale, old_latest, full_format, decoy):
+            path.write_bytes(b"placeholder")
+        # 修改时间早于旧格式：新格式「全量矩阵表」仍然优先
+        os.utime(full_format, (1000000000, 1000000000))
+        self.assertEqual(
+            full_format, FastInterfaceOverviewGenerator._latest_matrix(matrix_dir)
+        )
+        full_format.unlink()
+        # 同为旧格式：文件名日期最新的胜出
+        self.assertEqual(
+            old_latest, FastInterfaceOverviewGenerator._latest_matrix(matrix_dir)
+        )
+        old_stale.unlink()
+        old_latest.unlink()
+        # 文件名无日期：按修改时间兜底
+        early = matrix_dir / "PIE400_全量矩阵表_备份.xlsx"
+        late = matrix_dir / "PIE400_全量矩阵表.xlsx"
+        early.write_bytes(b"placeholder")
+        late.write_bytes(b"placeholder")
+        os.utime(early, (1000000000, 1000000000))
+        self.assertEqual(late, FastInterfaceOverviewGenerator._latest_matrix(matrix_dir))
 
     def _module(self, filename: str, signal: str, direction: str, port: str):
         workbook = Workbook()
