@@ -160,8 +160,6 @@ class InterfaceDeliveryService:
             shutil.copy2(template, template_dir / SUMMARY_NAME)
 
             manifest = self._input_manifest(package_root)
-            manifest_path = output / f"{run_id}_input_manifest.jsonl"
-            _write_jsonl(manifest_path, manifest)
             try:
                 generated_source, generation_stats = (
                     FastInterfaceOverviewGenerator().generate(package_root)
@@ -171,7 +169,9 @@ class InterfaceDeliveryService:
                     json.dumps(generation_stats, ensure_ascii=False),
                 ]
             except Exception as exc:
-                diagnostic_path = output / f"{run_id}_failure_diagnostics.json"
+                diagnostic_path = output / (
+                    f"接口生成失败诊断_{datetime.now():%Y%m%d_%H%M%S}.json"
+                )
                 diagnostic = {
                     "schema_version": "1.0",
                     "operation": "generate_interface_overview",
@@ -189,13 +189,17 @@ class InterfaceDeliveryService:
                 raise ContractError(
                     f"generation reported a missing output: {generated_source}"
                 )
+            # 附属产物与总览表同名前缀（中文后缀），run_id 仅留在报告内部
+            overview_stem = generated_source.stem
+            manifest_path = output / f"{overview_stem}_输入清单.jsonl"
+            _write_jsonl(manifest_path, manifest)
             generated_target = self._unique_target(output, generated_source.name)
             shutil.copy2(generated_source, generated_target)
             config_snapshot = self._unique_target(
-                output, f"{run_id}_Unit2ComponentConfig.xlsx"
+                output, f"{overview_stem}_单元配置快照.xlsx"
             )
             shutil.copy2(config_file, config_snapshot)
-            log_path = output / f"{run_id}_{requested_engine}_generation.log"
+            log_path = output / f"{overview_stem}_生成日志.log"
             log_path.write_text(
                 "\n".join(generation_logs), encoding="utf-8"
             )
@@ -205,13 +209,13 @@ class InterfaceDeliveryService:
                 config_snapshot,
                 max_evidence=max_evidence,
             )
-            validation_path = output / f"{run_id}_validation.json"
+            validation_path = output / f"{overview_stem}_生成校验.json"
             _write_json(validation_path, validation)
 
             comparison = None
             if compare_to_existing and baseline is not None:
                 baseline_snapshot = self._unique_target(
-                    output, f"{run_id}_baseline_{baseline.name}"
+                    output, f"{overview_stem}_对比基线_{baseline.name}"
                 )
                 shutil.copy2(baseline, baseline_snapshot)
                 comparison = self.compare_overviews(
@@ -259,7 +263,7 @@ class InterfaceDeliveryService:
                 or bool(comparison and comparison["summary"]["total_diffs"] > 0)
             ),
         }
-        report_path = output / f"{run_id}_generation_report.json"
+        report_path = output / f"{overview_stem}_生成报告.json"
         report["report_path"] = str(report_path.resolve())
         _write_json(report_path, report)
         report["report_artifact"] = self._artifact("generation_report", report_path)
@@ -305,7 +309,7 @@ class InterfaceDeliveryService:
         evidence, status_counts, rename_candidates = self._comparison_evidence(
             target, max_evidence=max_evidence
         )
-        evidence_path = output / f"{run_id}_evidence.jsonl"
+        evidence_path = output / f"{target.stem}_比对证据.jsonl"
         _write_jsonl(evidence_path, evidence)
         comparison = worker_result["comparison"]
         content_multiset = self._content_multiset_parity(
@@ -361,7 +365,7 @@ class InterfaceDeliveryService:
                 or rename_candidates > 0
             ),
         }
-        report_path = output / f"{run_id}_comparison_report.json"
+        report_path = output / f"{target.stem}_比对报告.json"
         report["report_path"] = str(report_path.resolve())
         _write_json(report_path, report)
         report["report_artifact"] = self._artifact("comparison_report", report_path)
