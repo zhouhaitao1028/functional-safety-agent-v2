@@ -191,6 +191,78 @@ class DynamicManagerPlanTest(unittest.TestCase):
         )
         self.assertEqual("test-model", resolved.model)
 
+    def test_agent_local_skills_folder_auto_binds_and_shadows_shared(self):
+        # 方案 B：config/agents/<agent_id>/skills/<id>/SKILL.md 放入即生效；
+        # 同名技能本地覆盖共享目录（允许按 agent 定制），声明顺序保持在前。
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            agents_dir = base / "agents"
+            skills_dir = base / "skills"
+            (agents_dir / "demo_agent" / "skills" / "local-skill").mkdir(parents=True)
+            (agents_dir / "demo_agent" / "skills" / "shared-skill").mkdir(parents=True)
+            (skills_dir / "shared-skill").mkdir(parents=True)
+            (skills_dir / "shared-skill" / "SKILL.md").write_text(
+                "shared version", encoding="utf-8"
+            )
+            (agents_dir / "demo_agent" / "skills" / "local-skill" / "SKILL.md").write_text(
+                "local only", encoding="utf-8"
+            )
+            (agents_dir / "demo_agent" / "skills" / "shared-skill" / "SKILL.md").write_text(
+                "local shadow", encoding="utf-8"
+            )
+            (agents_dir / "demo_agent" / "skills" / "empty-skill").mkdir()
+            (agents_dir / "demo_agent.json").write_text(
+                json.dumps(
+                    {
+                        "id": "demo_agent",
+                        "title": "Demo",
+                        "role": "demo",
+                        "kind": "engineer",
+                        "business": "demo",
+                        "consumes": [],
+                        "produces": [],
+                        "skills": ["shared-skill"],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+
+            registry = AgentRegistry(agents_dir, skill_root=skills_dir)
+            agent = registry.get("demo_agent")
+            self.assertEqual(("shared-skill", "local-skill"), agent.skills)
+            docs = {item.id: item for item in registry.skill_documents("demo_agent")}
+            self.assertEqual(2, len(docs))
+            self.assertEqual("local shadow", docs["shared-skill"].instructions)
+            self.assertIn("demo_agent", str(docs["shared-skill"].path))
+            self.assertEqual("local only", docs["local-skill"].instructions)
+
+    def test_agent_local_skills_reject_unsafe_folder_names(self):
+        with TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            agents_dir = base / "agents"
+            (agents_dir / "demo_agent" / "skills" / "Bad_Id").mkdir(parents=True)
+            (agents_dir / "demo_agent" / "skills" / "Bad_Id" / "SKILL.md").write_text(
+                "x", encoding="utf-8"
+            )
+            (agents_dir / "demo_agent.json").write_text(
+                json.dumps(
+                    {
+                        "id": "demo_agent",
+                        "title": "Demo",
+                        "role": "demo",
+                        "kind": "engineer",
+                        "business": "demo",
+                        "consumes": [],
+                        "produces": [],
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ContractError, "unsafe local skill folder"):
+                AgentRegistry(agents_dir, skill_root=base / "skills")
+
     def test_workplan_is_validated_against_agent_capabilities(self):
         plan = WorkPlan.from_dict(self.plan, self.engine.registry)
         self.assertEqual("function_model_engineer", plan.item("W01").agent_id)

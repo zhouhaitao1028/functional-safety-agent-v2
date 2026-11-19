@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Mapping
 import json
@@ -181,22 +181,7 @@ class AgentRegistry:
         }
 
     def skill_documents(self, agent_id: str) -> tuple[StoredSkill, ...]:
-        agent = self.get(agent_id)
-        result = []
-        for skill_id in agent.skills:
-            if not re.fullmatch(r"[a-z0-9-]{1,64}", skill_id):
-                raise ContractError(f"agent {agent_id} has unsafe skill id: {skill_id}")
-            path = self.skill_root / skill_id / "SKILL.md"
-            if not path.exists():
-                raise ContractError(f"agent {agent_id} references missing skill: {skill_id}")
-            result.append(
-                StoredSkill(
-                    id=skill_id,
-                    path=path,
-                    instructions=path.read_text(encoding="utf-8"),
-                )
-            )
-        return tuple(result)
+        return self.skill_documents_for_definition(self.get(agent_id))
 
     def _load(self) -> dict[str, AgentDefinition]:
         agents: dict[str, AgentDefinition] = {}
@@ -209,9 +194,38 @@ class AgentRegistry:
             agents[agent.id] = agent
         if not agents:
             raise ContractError(f"no agent configs found under {self.root}")
-        for agent in agents.values():
+        for agent in list(agents.values()):
+            # 方案 B：config/agents/<agent_id>/skills/<skill_id>/SKILL.md
+            # 目录式技能自动挂载，放入即生效；json 声明的共享技能优先。
+            local = self._agent_skill_ids(agent.id)
+            merged = tuple(dict.fromkeys((*agent.skills, *local)))
+            if merged != agent.skills:
+                agent = replace(agent, skills=merged)
+                agents[agent.id] = agent
             self.skill_documents_for_definition(agent)
         return agents
+
+    def _agent_skill_ids(self, agent_id: str) -> tuple[str, ...]:
+        local_root = self.root / agent_id / "skills"
+        if not local_root.is_dir():
+            return ()
+        ids = [
+            child.name
+            for child in sorted(local_root.iterdir())
+            if (child / "SKILL.md").is_file()
+        ]
+        for skill_id in ids:
+            if not re.fullmatch(r"[a-z0-9-]{1,64}", skill_id):
+                raise ContractError(
+                    f"agent {agent_id} has unsafe local skill folder: {skill_id}"
+                )
+        return tuple(ids)
+
+    def _skill_path(self, agent_id: str, skill_id: str) -> Path:
+        local = self.root / agent_id / "skills" / skill_id / "SKILL.md"
+        if local.is_file():
+            return local
+        return self.skill_root / skill_id / "SKILL.md"
 
     def skill_documents_for_definition(
         self, agent: AgentDefinition
@@ -220,7 +234,7 @@ class AgentRegistry:
         for skill_id in agent.skills:
             if not re.fullmatch(r"[a-z0-9-]{1,64}", skill_id):
                 raise ContractError(f"agent {agent.id} has unsafe skill id: {skill_id}")
-            path = self.skill_root / skill_id / "SKILL.md"
+            path = self._skill_path(agent.id, skill_id)
             if not path.exists():
                 raise ContractError(f"agent {agent.id} references missing skill: {skill_id}")
             result.append(StoredSkill(skill_id, path, path.read_text(encoding="utf-8")))
